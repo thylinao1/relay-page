@@ -154,6 +154,30 @@ h4{font-size:17px;line-height:1.35;margin:0 0 8px;font-weight:600}
   transform:translateY(-2px)}
 .blink svg{flex:none}
 .blink.primary{border-color:rgba(245,185,66,.55);color:var(--write)}
+
+/* The film plays on the page rather than being handed to the browser as a file, so
+   a judge who presses it does not lose the page they were reading. Without script
+   the link still points at the file and still works. */
+.filmshade{position:fixed;inset:0;z-index:90;display:flex;align-items:center;
+  justify-content:center;padding:clamp(14px,4vw,48px);
+  background:rgba(4,7,10,.86);backdrop-filter:blur(7px)}
+.filmshade[hidden]{display:none}
+.anim .filmshade{animation:filmin .28s var(--ease) both}
+@keyframes filmin{from{opacity:0}to{opacity:1}}
+.filmbox{width:min(1180px,100%);background:var(--panel);border:1px solid var(--rule-2);
+  border-radius:8px;overflow:hidden;box-shadow:0 44px 120px -40px rgba(0,0,0,.95)}
+.filmbar{display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:11px 14px 11px 17px;border-bottom:1px solid var(--rule)}
+.filmname{font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--ink-3)}
+.filmclose{font-family:var(--font-mono);font-size:12px;letter-spacing:.06em;
+  color:var(--ink-2);background:transparent;border:1px solid var(--rule-2);
+  border-radius:4px;padding:7px 13px;cursor:pointer;
+  transition:border-color .2s var(--ease),color .2s var(--ease)}
+.filmclose:hover{border-color:var(--write);color:var(--write)}
+.filmclose:focus-visible{outline:2px solid var(--write);outline-offset:2px}
+.filmbox video{display:block;width:100%;height:auto;max-height:76vh;background:#000}
+@media (prefers-reduced-motion:reduce){.anim .filmshade{animation:none}}
 .listen{max-width:565px;margin:0 0 28px;border:1px solid rgba(245,185,66,.32);
   border-left:2px solid var(--write);border-radius:5px;
   background:linear-gradient(96deg,rgba(245,185,66,.11),rgba(245,185,66,.02) 58%,transparent),
@@ -671,7 +695,7 @@ figcaption:not(.code-head)::after{content:"";display:block;width:64px;height:1px
             </span>
             <span class="listen-t">
               <b>Listen to the podcast exploring this project</b>
-              <span class="listen-m">22 min 21 s · generated from the judge walkthrough<span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span></span>
+              <span class="listen-m">22 min 21 s<span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span></span>
             </span>
           </summary>
           <div class="listen-p">
@@ -1484,6 +1508,17 @@ figcaption:not(.code-head)::after{content:"";display:block;width:64px;height:1px
 </div>
 </section>
 
+<div id="filmshade" class="filmshade" hidden>
+  <div class="filmbox" role="dialog" aria-modal="true" aria-label="The RELAY demo film">
+    <div class="filmbar">
+      <span class="filmname">RELAY · demo film</span>
+      <button class="filmclose" type="button" id="filmclose">Close</button>
+    </div>
+    <video id="filmplayer" controls playsinline preload="none"
+           poster="assets/console-loop.jpg"></video>
+  </div>
+</div>
+
 </main>
 
 <footer>
@@ -1653,7 +1688,13 @@ function json(id){ var el=document.getElementById(id); try{ return JSON.parse(el
      already delivering thirty, which halves the rate to fifteen. */
   var t = 0, last = 0, FRAME = 1000 / 32;
 
-  var A_DOT = 0.40, A_LAMP = 0.28, A_SWEEP = 0.05;
+  /* A_LAMP is the ceiling for a yard light standing on the ground, where amber at
+     that alpha reaches 5.2 percent. A running light is carried on a hull, which is
+     itself lit, and the two composite: at A_LAMP a light on a hull would reach 11.3
+     percent and the floodlight sweep passing over it would take the pixel to 12.1,
+     outside the budget. A_SHIP is the same light on the brighter ground a hull gives
+     it, chosen so that stack, sweep included, lands near 9.7 percent. */
+  var A_DOT = 0.40, A_LAMP = 0.28, A_SHIP = 0.20, A_SWEEP = 0.05;
   var GREY = "128,144,160", AMBER = "245,185,66", HULL = "46,62,80", SWEEP = "148,164,184";
 
   var layers = [], lamps = [], ships = [], moored = [], horizon = 0;
@@ -1886,7 +1927,7 @@ function json(id){ var el=document.getElementById(id); try{ return JSON.parse(el
     for(i = 0; i < H.lights.length; i++){
       var a = 0.13 + 0.13 * (0.5 + 0.5 * Math.sin(t * 0.8 + i * 1.9 + seed));
       dot(x + mir * H.lights[i][0] * sh.s, y + H.lights[i][1] * sh.s, 1,
-          AMBER, Math.min(a, A_LAMP));
+          AMBER, Math.min(a, A_SHIP));
     }
   }
 
@@ -1938,9 +1979,9 @@ function json(id){ var el=document.getElementById(id); try{ return JSON.parse(el
     ctx.clearRect(0, 0, w, h);
     drawLayer(0);
     drawHorizon();
+    drawLamps();
     drawMoored();
     drawBand(0);
-    drawLamps();
     drawBand(1);
     drawLayer(1);
     drawBand(2);
@@ -2013,30 +2054,56 @@ function json(id){ var el=document.getElementById(id); try{ return JSON.parse(el
   });
 })();
 
-/* ---------------- code excerpts type their first line ----------------
-   Only the first line, and only once per excerpt. The line is typed back from
-   its own text, so the rendered result is character for character what the file
-   held before the animation started. Anything unexpected in that line, markup or
-   a length no reader would wait through, is left alone. */
-function typeFirstLine(fig){
+/* ---------------- code excerpts type themselves in ----------------
+   The whole excerpt, not only its opening line, and once per excerpt. Every line is
+   typed back from its own text, so the rendered result is character for character
+   what the file held before the animation started. The rate is derived from the
+   length rather than fixed, so a twelve line excerpt and a twenty-three line one
+   both finish inside two seconds and nobody is left waiting on a typewriter. A line
+   carrying markup rather than plain text is left alone, and so is the block it sits
+   in. The copy button reads from the source data, so a copy taken while the text is
+   still arriving is complete. */
+function typeExcerpt(fig){
   if(!fig || reduce || fig.getAttribute("data-typed") === "1") return;
   fig.setAttribute("data-typed", "1");
-  var t = fig.querySelector("pre .cl .t");
-  if(!t || t.children.length) return;
-  var full = t.textContent;
-  if(!full || full.length > 120) return;
-  t.textContent = "";
-  t.classList.add("typing");
-  var shown = 0, t0 = 0;
+  var cells = [].slice.call(fig.querySelectorAll("pre .cl .t"));
+  if(!cells.length) return;
+
+  var text = [], total = 0, i;
+  for(i = 0; i < cells.length; i++){
+    if(cells[i].children.length) return;      /* markup: leave the excerpt as it is */
+    text.push(cells[i].textContent);
+    total += cells[i].textContent.length + 1; /* the newline, so a blank line still counts */
+  }
+  if(total < 2 || total > 4000) return;
+
+  for(i = 0; i < cells.length; i++) cells[i].textContent = "";
+  var dur = 900 + Math.min(1100, total * 0.55);   /* about one second to two */
+  var line = 0, t0 = 0;
+  cells[0].classList.add("typing");
+
   function step(ts){
     if(!t0) t0 = ts;
-    var want = Math.min(full.length, Math.round((ts - t0) / 15));
-    if(want !== shown){ shown = want; t.textContent = full.slice(0, shown); }
-    if(shown < full.length) requestAnimationFrame(step);
-    else { t.textContent = full; t.classList.remove("typing"); }
+    var want = Math.min(total, Math.round(total * (ts - t0) / dur));
+    var used = 0, k, j;
+    for(k = 0; k < cells.length; k++){
+      var len = text[k].length;
+      if(used + len + 1 <= want){ cells[k].textContent = text[k]; used += len + 1; continue; }
+      cells[k].textContent = text[k].slice(0, Math.max(0, want - used));
+      if(k !== line){ cells[line].classList.remove("typing"); line = k;
+                      cells[k].classList.add("typing"); }
+      for(j = k + 1; j < cells.length; j++) cells[j].textContent = "";
+      break;
+    }
+    if(want < total) requestAnimationFrame(step);
+    else {
+      for(k = 0; k < cells.length; k++) cells[k].textContent = text[k];
+      cells[line].classList.remove("typing");
+    }
   }
   requestAnimationFrame(step);
 }
+
 (function(){
   if(reduce || !window.IntersectionObserver) return;
   var figs = [].slice.call(document.querySelectorAll("figure.code"));
@@ -2044,7 +2111,7 @@ function typeFirstLine(fig){
     es.forEach(function(en){
       if(!en.isIntersecting) return;
       io.unobserve(en.target);
-      typeFirstLine(en.target);
+      typeExcerpt(en.target);
     });
   }, { threshold: 0.25 });
   figs.forEach(function(f){ io.observe(f); });
@@ -2224,7 +2291,7 @@ document.addEventListener("click", function(e){
         '</div>' +
       '</div>';
     requestAnimationFrame(function(){ panel.classList.add("on"); });
-    typeFirstLine(panel.querySelector("figure.code"));
+    typeExcerpt(panel.querySelector("figure.code"));
     var cl = document.getElementById("detailClose");
     if(cl) cl.addEventListener("click", function(){ close(); btn.focus(); });
   }
@@ -2390,6 +2457,41 @@ document.addEventListener("click", function(e){
     });
   }, { rootMargin: "-42% 0px -42% 0px", threshold: 0 });
   steps.forEach(function(s){ io.observe(s); });
+})();
+
+/* ---------------- the demo film opens on the page ----------------
+   The link keeps its href, so with script off, or if this fails, pressing it still
+   reaches the file. With script the file is loaded into a dialog over the page
+   instead: the reader keeps their place, and closing it stops the audio rather than
+   leaving it playing behind a shade. Escape closes, so does the shade itself, and
+   focus returns to the link that opened it. */
+(function(){
+  var link  = document.getElementById("videoLink");
+  var shade = document.getElementById("filmshade");
+  var film  = document.getElementById("filmplayer");
+  var shut  = document.getElementById("filmclose");
+  if(!link || !shade || !film || !shut) return;
+  var src = link.getAttribute("href"), open = false;
+
+  function show(e){
+    if(e && (e.metaKey || e.ctrlKey || e.shiftKey || e.button)) return;  /* let a deliberate new tab through */
+    if(e) e.preventDefault();
+    if(!film.getAttribute("src")) film.setAttribute("src", src);
+    shade.hidden = false; open = true;
+    document.body.style.overflow = "hidden";
+    shut.focus();
+    var p = film.play(); if(p && p.catch) p.catch(function(){});
+  }
+  function hide(){
+    if(!open) return;
+    film.pause(); shade.hidden = true; open = false;
+    document.body.style.overflow = "";
+    link.focus();
+  }
+  link.addEventListener("click", show);
+  shut.addEventListener("click", hide);
+  shade.addEventListener("click", function(e){ if(e.target === shade) hide(); });
+  document.addEventListener("keydown", function(e){ if(e.key === "Escape") hide(); });
 })();
 
 /* ---------------- the hero player ----------------
