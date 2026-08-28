@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 300" width="780" height="300" role="img" aria-label="Catch rate on at-risk connections: rules-only 0.883 against the agent 1.00" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif">
+  <rect x="0" y="0" width="780" height="300" fill="#FFFFFF"/>
+  <text x="24" y="28" font-size="15" font-weight="700" fill="#1a1f24">Catch rate on at-risk connections</text>
+  <text x="24" y="47" font-size="11.5" fill="#5d6772">500 generated scenarios, 299 of them at risk. Same event stream through both lanes.</text>
+  <line x1="200.0" y1="86" x2="200.0" y2="196" stroke="#e4e9ed" stroke-width="1"/>
+  <text x="200.0" y="214" font-size="10.5" fill="#5d6772" text-anchor="middle">0.00</text>
+  <line x1="289.0" y1="86" x2="289.0" y2="196" stroke="#e4e9ed" stroke-width="1"/>
+  <text x="289.0" y="214" font-size="10.5" fill="#5d6772" text-anchor="middle">0.25</text>
+  <line x1="378.0" y1="86" x2="378.0" y2="196" stroke="#e4e9ed" stroke-width="1"/>
+  <text x="378.0" y="214" font-size="10.5" fill="#5d6772" text-anchor="middle">0.50</text>
+  <line x1="467.0" y1="86" x2="467.0" y2="196" stroke="#e4e9ed" stroke-width="1"/>
+  <text x="467.0" y="214" font-size="10.5" fill="#5d6772" text-anchor="middle">0.75</text>
+  <line x1="556.0" y1="86" x2="556.0" y2="196" stroke="#e4e9ed" stroke-width="1"/>
+  <text x="556.0" y="214" font-size="10.5" fill="#5d6772" text-anchor="middle">1.00</text>
+  <line x1="200" y1="196" x2="556" y2="196" stroke="#5d6772" stroke-width="1"/>
+  <text x="378" y="234" font-size="11" fill="#5d6772" text-anchor="middle">share of at-risk connections detected before the cut-off</text>
+  <text x="186" y="118" font-size="12" fill="#1a1f24" text-anchor="end">rules-only baseline</text>
+  <rect x="200" y="100" width="314.3" height="26" fill="#b6bfc7" rx="2"/>
+  <line x1="501.2" y1="113" x2="527.4" y2="113" stroke="#1a1f24" stroke-width="1.4"/>
+  <line x1="501.2" y1="106" x2="501.2" y2="120" stroke="#1a1f24" stroke-width="1.4"/>
+  <line x1="527.4" y1="106" x2="527.4" y2="120" stroke="#1a1f24" stroke-width="1.4"/>
+  <text x="572" y="118" font-size="13" font-weight="700" fill="#1a1f24" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">0.883</text>
+  <text x="634" y="118" font-size="10.5" fill="#5d6772">95% CI 0.846 to 0.920</text>
+  <text x="186" y="164" font-size="12" fill="#1a1f24" text-anchor="end">agent</text>
+  <rect x="200" y="146" width="356.0" height="26" fill="#0f6d7a" rx="2"/>
+  <text x="572" y="164" font-size="13" font-weight="700" fill="#1a1f24" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">1.000</text>
+  <text x="634" y="164" font-size="10.5" fill="#5d6772">95% CI 1.000 to 1.000</text>
+  <text x="24" y="262" font-size="11.5" fill="#1a1f24">35 at-risk connections were caught by the agent and missed by the rules, and 0 of the 201 not-at-risk scenarios were escalated.</text>
+  <text x="24" y="286" font-size="10" fill="#5d6772" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">source: evalx/results/sweep-full-n500.final.json</text>
+</svg>

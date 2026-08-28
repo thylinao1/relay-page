@@ -1,0 +1,1872 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RELAY, the transhipment Connection Guardian</title>
+<meta name="description" content="RELAY is the exception layer a container terminal uses in the hours after a plan breaks. Architecture, real code, the recorded console and the measured evidence.">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230A0F14'/%3E%3Crect x='4' y='10' width='24' height='12' fill='none' stroke='%23F5B942' stroke-width='2'/%3E%3Cpath d='M10 12v8M14 12v8M18 12v8M22 12v8' stroke='%23F5B942' stroke-width='1.4' opacity='.6'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@600;700&display=swap">
+<script>
+/* Nothing on this page hides itself until the browser has proved it can animate.
+   The first animation frame adds the class the entry states hang off, so a reader
+   with no JavaScript, or in an engine where the frame never arrives, gets the whole
+   page rendered rather than a column of invisible blocks. */
+try { requestAnimationFrame(function(){ document.documentElement.className += " anim"; }); }
+catch (e) {}
+</script>
+<style>
+/* ============================================================
+   RELAY project page. One file, no build step, no framework.
+   Colour and type follow site/DESIGN-BRIEF.md.
+   ============================================================ */
+:root{
+  --bg:#0A0F14;
+  --panel:#111820;
+  --panel-2:#161F29;
+  --rule:#223040;
+  --rule-2:#2E3F52;
+  --ink:#E8EDF2;
+  --ink-2:#B4C0CC;
+  --ink-3:#8090A0;
+
+  --model:#A594FF;
+  --twin:#5EA8F2;
+  --rule-c:#8A939C;
+  --human:#4ADE80;
+  --write:#F5B942;
+  --deny:#F06A5E;
+
+  --font-display:"Space Grotesk","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --font-body:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+
+  --ease:cubic-bezier(0.16,1,0.3,1);
+  --wrap:1140px;
+  --pad:clamp(20px,5vw,52px);
+  --sec:clamp(76px,9vw,132px);
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:var(--font-body);font-size:18px;line-height:1.6;font-weight:400;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;overflow-wrap:break-word;
+}
+img,svg,video{max-width:100%}
+h1,h2,h3,h4{font-family:var(--font-display);font-weight:600;letter-spacing:-.02em;margin:0}
+p{margin:0 0 1.15em}
+p:last-child{margin-bottom:0}
+b,strong{font-weight:500;color:var(--ink)}
+.mono,code,kbd{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.num{font-family:var(--font-mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+
+a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--rule-2);
+  transition:color .18s var(--ease),border-color .18s var(--ease)}
+a:hover{color:var(--write);border-bottom-color:var(--write)}
+:focus-visible{outline:2px solid var(--write);outline-offset:3px;border-radius:2px}
+
+.wrap{max-width:var(--wrap);margin:0 auto;padding:0 var(--pad)}
+.wrap-wide{max-width:1320px;margin:0 auto;padding:0 var(--pad)}
+section{padding:var(--sec) 0;position:relative;scroll-margin-top:72px}
+#top{padding:0;scroll-margin-top:0}
+.rulebar{height:1px;background:var(--rule);border:0;margin:0}
+
+/* ---------- section headings ---------- */
+.kicker{font-family:var(--font-mono);font-size:12px;font-weight:500;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink-3);margin:0 0 18px;display:flex;align-items:center;gap:12px}
+.kicker::before{content:"";width:26px;height:2px;background:var(--write);flex:none;border-radius:1px}
+h2{font-size:clamp(30px,4.2vw,46px);line-height:1.12;max-width:19ch;margin:0 0 20px}
+.lede{font-size:clamp(18px,2vw,21px);line-height:1.55;color:var(--ink-2);max-width:66ch;margin:0 0 40px}
+h3{font-size:clamp(20px,2.4vw,25px);line-height:1.25;margin:0 0 12px}
+h4{font-size:17px;line-height:1.35;margin:0 0 8px;font-weight:600}
+.small{font-size:15px;line-height:1.55;color:var(--ink-3)}
+.src{font-family:var(--font-mono);font-size:12px;line-height:1.5;color:var(--ink-3);
+  letter-spacing:.01em;word-break:break-word}
+.src b{color:var(--ink-2);font-weight:500}
+
+/* ---------- reveal ---------- */
+.anim .rv{opacity:0;transform:translateY(16px);
+  transition:opacity .6s var(--ease),transform .6s var(--ease)}
+.anim .rv.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.anim .rv{opacity:1;transform:none;transition:none}}
+
+/* ---------- scroll progress rail ---------- */
+#rail{position:fixed;left:14px;top:0;bottom:0;width:14px;z-index:60;pointer-events:none}
+#rail .track{position:absolute;left:6px;top:0;bottom:0;width:2px;background:var(--rule)}
+#rail .fill{position:absolute;left:6px;top:0;width:2px;height:0;background:var(--write);
+  box-shadow:0 0 10px rgba(245,185,66,.45)}
+#rail .tick{position:absolute;left:2px;width:10px;height:1px;background:var(--rule-2)}
+#rail .tick.on{background:var(--write);width:14px;left:0}
+@media (max-width:960px){#rail{left:4px;width:8px}#rail .track,#rail .fill{left:3px}
+  #rail .tick{left:0;width:8px}#rail .tick.on{width:8px;left:0}}
+
+/* ---------- top bar ---------- */
+#bar{position:fixed;left:0;right:0;top:0;z-index:55;height:56px;
+  border-bottom:1px solid transparent;background:transparent;
+  transform:translateY(-100%);
+  transition:transform .35s var(--ease),background .3s var(--ease),border-color .3s var(--ease)}
+#bar.on{transform:none;background:rgba(10,15,20,.86);border-bottom-color:var(--rule);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+#bar .wrap-wide{display:flex;align-items:center;gap:22px;height:56px}
+#bar .brand{font-family:var(--font-display);font-weight:700;font-size:17px;letter-spacing:.02em;
+  border:0;color:var(--ink)}
+#bar nav{display:flex;gap:2px;margin-left:auto;overflow-x:auto;scrollbar-width:none}
+#bar nav::-webkit-scrollbar{display:none}
+#bar nav a{font-family:var(--font-mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-3);border:0;padding:7px 10px;border-radius:3px;white-space:nowrap;
+  transition:color .18s var(--ease),background .18s var(--ease)}
+#bar nav a:hover{color:var(--ink);background:rgba(245,185,66,.09)}
+#bar nav a.active{color:var(--write)}
+@media (max-width:760px){#bar .brand{display:none}#bar nav{margin-left:0}}
+
+/* ---------- hero ---------- */
+#hero{min-height:100svh;display:flex;flex-direction:column;justify-content:center;
+  position:relative;overflow:hidden;padding:104px 0 96px}
+#field{position:absolute;inset:0;width:100%;height:100%;z-index:0;display:block}
+#hero .wrap-wide{position:relative;z-index:2}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);
+  gap:clamp(28px,5vw,64px);align-items:center}
+@media (max-width:960px){.hero-grid{grid-template-columns:minmax(0,1fr);gap:36px}}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink-3);margin:0 0 22px}
+#hero h1{font-family:var(--font-display);font-weight:700;font-size:clamp(58px,11vw,132px);
+  line-height:.92;letter-spacing:-.045em;margin:0 0 24px}
+#hero h1 .w{display:inline-block}
+.anim #hero h1 .w{opacity:0;transform:translateY(20px);
+  transition:opacity .7s var(--ease),transform .7s var(--ease)}
+.anim #hero h1 .w.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.anim #hero h1 .w{opacity:1;transform:none;transition:none}}
+#hero .sub{font-size:clamp(17px,1.9vw,20px);line-height:1.55;color:var(--ink-2);max-width:54ch;
+  margin:0 0 30px}
+.herolinks{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 30px}
+.blink{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--rule-2);
+  border-radius:4px;padding:11px 16px;font-family:var(--font-mono);font-size:13px;
+  letter-spacing:.02em;color:var(--ink-2);background:var(--panel);
+  transition:border-color .2s var(--ease),color .2s var(--ease),background .2s var(--ease),
+             transform .2s var(--ease)}
+.blink:hover{border-color:var(--write);color:var(--write);background:rgba(245,185,66,.07);
+  transform:translateY(-2px)}
+.blink svg{flex:none}
+.blink.primary{border-color:rgba(245,185,66,.55);color:var(--write)}
+.herometa{font-family:var(--font-mono);font-size:12.5px;color:var(--ink-3);
+  display:flex;flex-wrap:wrap;gap:6px 20px;padding-top:20px;border-top:1px solid var(--rule)}
+.herometa b{color:var(--ink-2);font-weight:500}
+
+.boxstage{position:relative}
+.boxstage svg{display:block;width:100%;height:auto}
+.chip{position:absolute;right:2%;top:4%;background:var(--panel);border:1px solid var(--rule-2);
+  border-left:2px solid var(--write);border-radius:4px;padding:11px 15px 12px;
+  box-shadow:0 20px 44px -22px rgba(0,0,0,.85)}
+.chip .n{font-family:var(--font-mono);font-weight:500;font-variant-numeric:tabular-nums;
+  font-size:clamp(28px,4vw,40px);line-height:1;color:var(--write);letter-spacing:-.03em;display:block}
+.chip .n i{font-style:normal;font-size:.45em;color:var(--ink-3);margin-left:5px;letter-spacing:0}
+.chip .l{font-family:var(--font-mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--ink-3);display:block;margin-top:7px}
+@media (max-width:520px){.chip{right:0;top:0}}
+/* Below 620px the container's fine print would render under 7px, so it is dropped
+   rather than shown at a size nobody can read. */
+@media (max-width:620px){
+  .boxstage .fine{display:none}
+  .boxstage .atrisk-t{font-size:19px}
+  .boxstage .atrisk-box{width:170px}
+}
+
+.cue{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);z-index:3;
+  display:flex;flex-direction:column;align-items:center;gap:9px;
+  font-family:var(--font-mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink-3)}
+.cue i{display:block;width:1px;height:34px;background:linear-gradient(var(--ink-3),transparent);
+  animation:cue 2.6s var(--ease) infinite}
+@keyframes cue{0%{transform:scaleY(.15);transform-origin:top}
+  50%{transform:scaleY(1);transform-origin:top}
+  51%{transform:scaleY(1);transform-origin:bottom}
+  100%{transform:scaleY(0);transform-origin:bottom}}
+@media (prefers-reduced-motion:reduce){.cue i{animation:none;transform:scaleY(1)}}
+@media (max-height:720px){.cue{display:none}}
+
+/* ---------- panels, figures ---------- */
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:6px}
+figure{margin:0;min-width:0}
+figcaption{font-size:14.5px;line-height:1.5;color:var(--ink-3);margin-top:12px}
+figcaption b{color:var(--ink-2);font-weight:500}
+.fig-src{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-3);margin-top:7px;
+  letter-spacing:.02em;word-break:break-word}
+
+/* ---------- two lanes figure ---------- */
+.lanes{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);
+  gap:clamp(24px,4vw,52px);align-items:start}
+@media (max-width:900px){.lanes{grid-template-columns:minmax(0,1fr)}}
+.lanefig{padding:22px 20px 18px}
+.lanefig svg{display:block;width:100%;height:auto}
+/* Below 760px the labels inside these figures would render under 8px, so the figure
+   keeps its own width and scrolls sideways instead of shrinking out of legibility. */
+@media (max-width:760px){
+  .lanefig{overflow-x:auto}
+  .lanefig svg{min-width:560px}
+}
+.scrollhint{display:none}
+@media (max-width:760px){.scrollhint{display:block;font-family:var(--font-mono);font-size:11px;
+  line-height:1.5;color:var(--ink-3);margin-top:8px}}
+.lane-el{opacity:0;transform:translateX(34px);
+  transition:opacity .6s var(--ease),transform .7s var(--ease)}
+.lanes.play .lane-el{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.lane-el{opacity:1;transform:none;transition:none}}
+
+.stat{border-top:1px solid var(--rule);padding:22px 0 20px}
+.stat:first-of-type{border-top:0;padding-top:0}
+.stat .v{font-family:var(--font-mono);font-weight:500;font-variant-numeric:tabular-nums;
+  font-size:clamp(30px,4.4vw,44px);line-height:1;letter-spacing:-.035em;color:var(--ink);display:block}
+.stat .v.hot{color:var(--write)}
+.stat p{font-size:16px;line-height:1.5;color:var(--ink-2);margin:12px 0 8px}
+
+/* ---------- owner legend ---------- */
+.legend{display:flex;flex-wrap:wrap;gap:10px 22px;margin:0 0 28px;
+  font-family:var(--font-mono);font-size:12.5px;color:var(--ink-3)}
+.legend span{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.legend i{width:10px;height:10px;border-radius:2px;flex:none;display:block}
+
+/* ---------- architecture diagram ---------- */
+.graph{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:1000px){.graph{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.graph{grid-template-columns:minmax(0,1fr)}}
+.node{position:relative;display:flex;flex-direction:column;gap:7px;text-align:left;
+  background:var(--panel);border:1px solid var(--rule);border-radius:5px;
+  padding:16px 15px 15px;cursor:pointer;font:inherit;color:inherit;
+  transition:transform .3s var(--ease),border-color .25s var(--ease),background .25s var(--ease),
+             box-shadow .3s var(--ease)}
+.node::before{content:"";position:absolute;left:-1px;top:-1px;bottom:-1px;width:3px;
+  border-radius:5px 0 0 5px;background:var(--own,var(--rule-c));opacity:.55;
+  transition:opacity .25s var(--ease)}
+.node:hover{transform:translateY(-3px);border-color:var(--rule-2);background:var(--panel-2);
+  box-shadow:0 22px 40px -26px rgba(0,0,0,.9)}
+.node:hover::before,.node[aria-expanded="true"]::before{opacity:1}
+.node[aria-expanded="true"]{border-color:var(--own,var(--rule-c));background:var(--panel-2)}
+.node .ix{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;color:var(--ink-3)}
+.node .ttl{font-family:var(--font-display);font-weight:600;font-size:16.5px;line-height:1.25;
+  letter-spacing:-.01em;color:var(--ink)}
+.node .nd{font-family:var(--font-mono);font-size:11.5px;color:var(--own,var(--rule-c));
+  word-break:break-word}
+.node .own{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--ink-3);margin-top:auto;padding-top:6px}
+.node .plus{position:absolute;right:12px;top:13px;width:13px;height:13px;opacity:.5}
+.node .plus::before,.node .plus::after{content:"";position:absolute;background:var(--ink-3);
+  transition:transform .3s var(--ease),background .25s var(--ease)}
+.node .plus::before{left:0;right:0;top:6px;height:1px}
+.node .plus::after{top:0;bottom:0;left:6px;width:1px}
+.node[aria-expanded="true"] .plus::after{transform:scaleY(0)}
+.node[aria-expanded="true"] .plus::before{background:var(--own,var(--write))}
+
+.flowline{display:flex;align-items:center;gap:10px;margin:14px 0 0;
+  font-family:var(--font-mono);font-size:11.5px;color:var(--ink-3)}
+.flowline i{flex:1 1 auto;height:1px;background:linear-gradient(90deg,var(--rule),var(--rule-2))}
+
+/* detail panel, opens in place */
+#detail{margin-top:14px;overflow:hidden;max-height:0;opacity:0;
+  transition:max-height .45s var(--ease),opacity .3s var(--ease),margin-top .3s var(--ease)}
+#detail.on{max-height:3200px;opacity:1;margin-top:16px}
+@media (prefers-reduced-motion:reduce){#detail{transition:none}}
+.detail-in{background:var(--panel);border:1px solid var(--rule);border-top:2px solid var(--own,var(--write));
+  border-radius:0 0 6px 6px;padding:clamp(20px,3vw,32px)}
+.detail-top{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 16px;margin-bottom:6px}
+.detail-top h3{margin:0}
+.detail-top .nd{font-family:var(--font-mono);font-size:12.5px;color:var(--own,var(--write))}
+.detail-close{margin-left:auto;font-family:var(--font-mono);font-size:11.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-3);background:none;border:1px solid var(--rule);
+  border-radius:3px;padding:6px 11px;cursor:pointer;
+  transition:color .2s var(--ease),border-color .2s var(--ease)}
+.detail-close:hover{color:var(--write);border-color:var(--write)}
+.detail-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:clamp(18px,3vw,34px);
+  align-items:start;margin-top:16px}
+@media (max-width:900px){.detail-grid{grid-template-columns:minmax(0,1fr)}}
+.contract{border-left:2px solid var(--rule-2);padding:2px 0 2px 16px;margin-top:18px}
+.contract .h{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);display:block;margin-bottom:7px}
+.contract p{font-size:16px;line-height:1.55;color:var(--ink-2);margin:0}
+
+/* ---------- code blocks ---------- */
+.code{background:var(--panel-2);border:1px solid var(--rule);border-radius:5px;overflow:hidden}
+.code-head{display:flex;align-items:center;gap:12px;padding:10px 12px 10px 14px;
+  border-bottom:1px solid var(--rule);background:rgba(10,15,20,.5);flex-wrap:wrap}
+.code-head .p{font-family:var(--font-mono);font-size:12px;color:var(--ink-2);word-break:break-all}
+.code-head .r{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-3);white-space:nowrap}
+.copy{margin-left:auto;font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-3);background:none;border:1px solid var(--rule-2);
+  border-radius:3px;padding:5px 10px;cursor:pointer;white-space:nowrap;
+  transition:color .2s var(--ease),border-color .2s var(--ease),background .2s var(--ease)}
+.copy:hover{color:var(--write);border-color:var(--write);background:rgba(245,185,66,.08)}
+.copy.done{color:var(--human);border-color:var(--human)}
+.code pre{margin:0;overflow-x:auto;padding:14px 0;font-family:var(--font-mono);
+  font-size:12.5px;line-height:1.62;-webkit-overflow-scrolling:touch}
+.code .cl{display:flex;min-width:min-content}
+.code .cl .n{position:sticky;left:0;flex:none;width:52px;padding-right:14px;text-align:right;
+  color:var(--ink-3);opacity:.62;background:var(--panel-2);user-select:none;-webkit-user-select:none}
+.code .cl .t{white-space:pre;padding-right:20px;color:var(--ink-2)}
+.code .cl:hover .t{color:var(--ink)}
+
+/* ---------- video and stills ---------- */
+.clipwrap{background:#000;border:1px solid var(--rule);border-radius:6px;overflow:hidden;
+  line-height:0}
+.clipwrap video{display:block;width:100%;height:auto}
+.stills{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(16px,2.6vw,28px);
+  margin-top:clamp(34px,5vw,56px)}
+@media (max-width:800px){.stills{grid-template-columns:minmax(0,1fr)}}
+.stills .full{grid-column:1/-1}
+.shot{border:1px solid var(--rule);border-radius:5px;overflow:hidden;background:var(--panel);
+  line-height:0;transition:border-color .25s var(--ease)}
+.shot:hover{border-color:var(--rule-2)}
+.shot img{display:block;width:100%;height:auto}
+
+/* ---------- scrollytelling ---------- */
+/* No align-items here on purpose. The board's column has to stretch to the height of
+   the whole row, or the sticky element has no containing block to travel in and the
+   board scrolls out of view at the second step. */
+.scrolly{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.06fr);
+  gap:clamp(26px,4vw,64px)}
+@media (max-width:900px){.scrolly{display:flex;flex-direction:column;gap:30px}
+  .scrolly > div:last-child{order:-1}}
+.steps{display:flex;flex-direction:column}
+.step{padding:26px 0 26px 22px;border-left:1px solid var(--rule);position:relative;
+  transition:border-color .35s var(--ease)}
+.step::before{content:"";position:absolute;left:-4px;top:34px;width:7px;height:7px;border-radius:50%;
+  background:var(--rule-2);transition:background .35s var(--ease),transform .35s var(--ease)}
+.step .k{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);display:block;margin-bottom:9px}
+.step h4{color:var(--ink-2);transition:color .35s var(--ease)}
+.step p{font-size:16.5px;line-height:1.55;color:var(--ink-3);margin:0 0 10px;
+  transition:color .35s var(--ease)}
+.step .stepev{display:block;font-family:var(--font-mono);font-size:11.5px;line-height:1.5;
+  color:var(--ink-3);background:var(--panel);border:1px solid var(--rule);border-radius:4px;
+  padding:9px 12px;word-break:break-word;transition:border-color .35s var(--ease)}
+.step.on .stepev{border-color:var(--rule-2);color:var(--ink-2)}
+.step.on{border-left-color:var(--write)}
+.step.on::before{background:var(--write);transform:scale(1.35)}
+.step.on h4{color:var(--ink)}
+.step.on p{color:var(--ink-2)}
+@media (min-width:901px){.step{min-height:58vh;display:flex;flex-direction:column;justify-content:center}}
+.sticky{position:sticky;top:88px}
+@media (max-width:900px){.sticky{position:static;margin-bottom:8px}}
+
+/* console board */
+.board{background:var(--panel);border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+.board .bh{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--rule);
+  background:rgba(10,15,20,.45);font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--ink-3);flex-wrap:wrap}
+.board .bh .dot{width:7px;height:7px;border-radius:50%;background:var(--human);flex:none}
+.board .bh .mode{margin-left:auto;color:var(--ink-3)}
+.brow{display:grid;grid-template-columns:auto minmax(0,1fr);gap:5px 18px;align-items:center;
+  padding:16px;border-bottom:1px solid var(--rule)}
+.brow .id{font-family:var(--font-mono);font-size:13px;color:var(--ink-2);grid-column:2;grid-row:1}
+.brow .meta{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);grid-column:2;grid-row:2}
+.brow .m{font-family:var(--font-mono);font-weight:500;font-variant-numeric:tabular-nums;
+  font-size:clamp(26px,3.4vw,34px);line-height:1;letter-spacing:-.03em;color:var(--ink);
+  grid-column:1;grid-row:1/3;align-self:center;white-space:nowrap}
+.brow .m i{font-style:normal;font-size:.4em;color:var(--ink-3);margin-left:5px}
+.pill{display:inline-block;font-family:var(--font-mono);font-size:10px;letter-spacing:.11em;
+  text-transform:uppercase;padding:3px 7px;border-radius:3px;border:1px solid currentColor;
+  margin-left:8px;vertical-align:1px}
+.pill.risk{color:var(--write)}
+.pill.ok{color:var(--human)}
+.pill.no{color:var(--deny)}
+.brow.at .m{color:var(--write)}
+.brow.ok .m{color:var(--human)}
+.bfoot{padding:14px 16px;font-family:var(--font-mono);font-size:11.5px;line-height:1.55;
+  color:var(--ink-3);min-height:74px}
+.bfoot b{color:var(--ink-2);font-weight:500}
+.trace{padding:0 16px 16px}
+.trace li{list-style:none;font-family:var(--font-mono);font-size:11px;line-height:1.7;
+  color:var(--ink-3);opacity:.35;transition:opacity .35s var(--ease),color .35s var(--ease)}
+.trace{margin:0;padding-left:16px;padding-right:16px}
+.trace li.on{opacity:1;color:var(--ink-2)}
+.trace li .tag{color:var(--write)}
+
+/* ---------- refusal blocks ---------- */
+.refuse{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);
+  gap:clamp(20px,3.4vw,48px);align-items:start;
+  padding:clamp(30px,4vw,48px) 0;border-top:1px solid var(--rule)}
+@media (max-width:900px){.refuse{grid-template-columns:minmax(0,1fr)}}
+.refuse .no{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--deny);margin:0 0 12px;display:block}
+.refuse p{font-size:16.5px;line-height:1.6;color:var(--ink-2)}
+
+/* ---------- hash chain widget ---------- */
+.chainwrap{margin-top:clamp(30px,4vw,52px)}
+.chain{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;
+  overflow-x:auto;padding-bottom:4px}
+@media (max-width:1000px){.chain{grid-template-columns:repeat(5,minmax(190px,1fr))}}
+.ev{background:var(--panel);border:1px solid var(--rule);border-radius:5px;padding:14px 13px;
+  position:relative;transition:border-color .3s var(--ease),background .3s var(--ease)}
+.ev .id{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);letter-spacing:.06em}
+.ev .ty{font-family:var(--font-mono);font-size:12.5px;color:var(--twin);margin:6px 0 10px;
+  word-break:break-word}
+.ev .ac{font-family:var(--font-mono);font-size:11px;line-height:1.5;color:var(--ink-3);
+  margin:0 0 12px;min-height:49px;word-break:break-word}
+.ev .ac mark{background:none;color:var(--deny);border-bottom:1px solid var(--deny)}
+.ev .hl{font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-3);display:block;margin-bottom:4px}
+.ev .h{font-family:var(--font-mono);font-size:12px;color:var(--human);word-break:break-all;
+  transition:color .3s var(--ease)}
+.ev.bad{border-color:rgba(240,106,94,.55);background:rgba(240,106,94,.05)}
+.ev.bad .h{color:var(--deny)}
+.ev.edited .ty{color:var(--deny)}
+.chainbar{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:18px}
+.btn{font-family:var(--font-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+  padding:10px 16px;border:1px solid var(--rule-2);border-radius:4px;background:var(--panel);
+  color:var(--ink-2);cursor:pointer;
+  transition:color .2s var(--ease),border-color .2s var(--ease),background .2s var(--ease)}
+.btn:hover{color:var(--write);border-color:var(--write);background:rgba(245,185,66,.08)}
+.btn.armed{color:var(--deny);border-color:rgba(240,106,94,.6)}
+#chainState{font-family:var(--font-mono);font-size:12.5px;color:var(--human)}
+#chainState.bad{color:var(--deny)}
+
+/* ---------- evidence ---------- */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;
+  background:var(--rule);border:1px solid var(--rule);border-radius:5px;overflow:hidden;
+  margin:0 0 clamp(36px,5vw,60px)}
+.stats > div{background:var(--panel);padding:22px 18px 20px}
+.stats .v{font-family:var(--font-mono);font-weight:500;font-variant-numeric:tabular-nums;
+  font-size:clamp(22px,2.5vw,29px);line-height:1;letter-spacing:-.035em;color:var(--ink);display:block}
+.stats .v.hot{color:var(--write)}
+.stats .l{font-size:14.5px;line-height:1.45;color:var(--ink-2);display:block;margin-top:11px}
+.stats .s{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);display:block;margin-top:8px;
+  word-break:break-word}
+
+.plate{background:#FFFFFF;border:1px solid var(--rule-2);border-radius:5px;padding:10px;
+  line-height:0;overflow-x:auto;min-width:0}
+.plate img{display:block;width:100%;height:auto}
+@media (max-width:760px){
+  .plate img{min-width:620px}
+  .plate.wide img{min-width:900px}
+}
+.figrow{display:grid;grid-template-columns:minmax(0,1fr);gap:clamp(30px,4vw,48px);
+  margin:0 0 clamp(34px,4.5vw,54px)}
+
+.tblwrap{overflow-x:auto;border:1px solid var(--rule);border-radius:5px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;min-width:660px;font-size:15px}
+th,td{text-align:left;padding:13px 16px;border-bottom:1px solid var(--rule);vertical-align:top}
+thead th{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:500;background:rgba(10,15,20,.4)}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover td{background:rgba(245,185,66,.035)}
+td .r{font-family:var(--font-mono);font-variant-numeric:tabular-nums;color:var(--ink);font-size:14px}
+td .f{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-3);word-break:break-word}
+td.what{color:var(--ink-2)}
+
+.note{border:1px solid var(--rule);border-left:2px solid var(--rule-c);border-radius:0 5px 5px 0;
+  background:var(--panel);padding:clamp(20px,3vw,28px);margin-top:clamp(30px,4vw,44px)}
+.note h4{color:var(--ink)}
+.note p{font-size:16.5px;line-height:1.6;color:var(--ink-2);margin:0}
+
+/* ---------- limits and ask ---------- */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.pcard{background:var(--panel);border:1px solid var(--rule);border-radius:5px;
+  padding:22px 20px 20px}
+.pcard .t{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--ink-3);display:block;margin-bottom:10px}
+.pcard p{font-size:15.5px;line-height:1.55;color:var(--ink-2);margin:0}
+.pcard.ask .t{color:var(--human)}
+.pcard.limit .t{color:var(--write)}
+.split{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(28px,4vw,56px);
+  align-items:start}
+@media (max-width:900px){.split{grid-template-columns:minmax(0,1fr)}}
+
+/* ---------- footer ---------- */
+footer{border-top:1px solid var(--rule);padding:clamp(46px,6vw,72px) 0 56px;background:var(--panel)}
+.foot{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:28px}
+.foot h4{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:500;margin:0 0 12px}
+.foot ul{margin:0;padding:0;list-style:none}
+.foot li{margin:0 0 8px;font-size:15px}
+.foot li.mono{font-size:12.5px;line-height:1.5;color:var(--ink-3);word-break:break-word}
+.foot a{color:var(--ink-2);border-bottom-color:var(--rule)}
+.footnote{margin-top:clamp(34px,4vw,52px);padding-top:22px;border-top:1px solid var(--rule);
+  font-size:14.5px;line-height:1.6;color:var(--ink-3);max-width:80ch}
+.footnote b{color:var(--ink-2)}
+</style>
+<noscript><style>.reveal,[class*="reveal"]{opacity:1 !important;transform:none !important}</style></noscript></head>
+<body>
+
+<div id="rail" aria-hidden="true"><span class="track"></span><span class="fill"></span></div>
+
+<header id="bar">
+  <div class="wrap-wide">
+    <a class="brand" href="#top">RELAY</a>
+    <nav aria-label="Sections">
+      <a href="#problem" data-sec="problem">Problem</a>
+      <a href="#decides" data-sec="decides">How it decides</a>
+      <a href="#run" data-sec="run">Watch it run</a>
+      <a href="#walk" data-sec="walk">Step by step</a>
+      <a href="#refuses" data-sec="refuses">Refusals</a>
+      <a href="#evidence" data-sec="evidence">Evidence</a>
+      <a href="#limits" data-sec="limits">Limits</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<!-- ==================== 1. HERO ==================== -->
+<section id="top">
+<div id="hero">
+  <canvas id="field" aria-hidden="true"></canvas>
+  <div class="wrap-wide">
+    <div class="hero-grid">
+      <div>
+        <p class="eyebrow">PSA Code Sprint 2.0 · Agentic AI in Action · August 2026</p>
+        <h1>RELAY</h1>
+        <p class="sub">RELAY is the exception layer a container terminal uses in the hours after a
+          plan breaks. It reads the carrier's free-text advisory beside the structured event stream,
+          recomputes which transhipment connections will now miss their ship, and puts every write
+          to a terminal system in front of the duty officer as a priced, reversible decision on a
+          tamper-evident record.</p>
+        <div class="herolinks">
+          <a class="blink primary" href="../video/out/relay-video.mp4" id="videoLink">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><path d="M2 1.4v10.2l9-5.1L2 1.4z" fill="currentColor"/></svg>
+            Demo video
+          </a>
+          <a class="blink" href="https://github.com/thylinao1/relay-psa-codesprint">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 .5a7.5 7.5 0 00-2.37 14.62c.37.07.51-.16.51-.36l-.01-1.26c-2.09.45-2.53-1-2.53-1-.34-.87-.83-1.1-.83-1.1-.68-.47.05-.46.05-.46.75.05 1.15.77 1.15.77.67 1.15 1.76.82 2.19.63.07-.49.26-.82.48-1.01-1.67-.19-3.42-.83-3.42-3.71 0-.82.29-1.49.77-2.02-.08-.19-.34-.95.07-1.98 0 0 .63-.2 2.06.77a7.2 7.2 0 013.75 0c1.43-.97 2.06-.77 2.06-.77.41 1.03.15 1.79.08 1.98.48.53.77 1.2.77 2.02 0 2.89-1.76 3.52-3.43 3.7.27.23.51.69.51 1.4l-.01 2.07c0 .2.14.44.52.36A7.5 7.5 0 008 .5z" fill="currentColor"/></svg>
+            Repository
+          </a>
+          <a class="blink" href="../deliverables/deck/relay-deck.html">
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="1" y="2" width="12" height="8.5" stroke="currentColor" stroke-width="1.2"/><path d="M4.5 12.6h5" stroke="currentColor" stroke-width="1.2"/></svg>
+            Submission deck
+          </a>
+        </div>
+        <p class="herometa">
+          <span>All terminal data <b>SYNTHETIC</b></span>
+          <span><b>1,351</b> tests</span>
+          <span>No API key</span>
+          <span>No PORTNET integration</span>
+        </p>
+      </div>
+
+      <div class="boxstage">
+        <!-- The container from the film, standing on a yard line. -->
+        <svg viewBox="0 0 720 470" role="img" aria-label="A shipping container standing on a yard line, marked MSKU 481007-3, with 41 minutes of margin to its cut-off">
+          <defs>
+            <linearGradient id="cSide" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#1B2733"/><stop offset="1" stop-color="#121A23"/>
+            </linearGradient>
+            <linearGradient id="cTop" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#26333F"/><stop offset="1" stop-color="#1A242E"/>
+            </linearGradient>
+            <linearGradient id="cDoor" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#1F2C38"/><stop offset="1" stop-color="#151E27"/>
+            </linearGradient>
+            <radialGradient id="shade" cx="0.5" cy="0.5" r="0.5">
+              <stop offset="0" stop-color="#000000" stop-opacity=".75"/>
+              <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+            </radialGradient>
+            <clipPath id="sideClip"><rect x="72" y="148" width="452" height="188"/></clipPath>
+          </defs>
+
+          <!-- ground shadow -->
+          <ellipse cx="330" cy="374" rx="300" ry="30" fill="url(#shade)"/>
+
+          <!-- yard lines -->
+          <path d="M20 372 H700" stroke="#2E3F52" stroke-width="2"/>
+          <path d="M40 400 H680" stroke="#223040" stroke-width="1" stroke-dasharray="16 14" opacity=".8"/>
+          <path d="M96 372 v28 M232 372 v28 M368 372 v28 M504 372 v28 M640 372 v28"
+                stroke="#223040" stroke-width="1" opacity=".7"/>
+          <path d="M96 372 H392" stroke="#F5B942" stroke-width="2.5" stroke-dasharray="26 16" opacity=".9"/>
+          <text x="20" y="426" font-family="JetBrains Mono, monospace" font-size="11" fill="#8090A0"
+                letter-spacing="1.6">YARD BLOCK Y12 · TUAS-T3</text>
+
+          <!-- top face, slight isometric offset -->
+          <path d="M72 148 L118 118 H614 L568 148 Z" fill="url(#cTop)" stroke="#2E3F52" stroke-width="1"/>
+          <path d="M140 130 H596 M160 122 H584" stroke="#223040" stroke-width="1" opacity=".55"/>
+
+          <!-- body -->
+          <rect x="72" y="148" width="452" height="188" fill="url(#cSide)" stroke="#2E3F52" stroke-width="1"/>
+          <!-- corrugation -->
+          <g clip-path="url(#sideClip)" stroke="#26333F" stroke-width="1.6" opacity=".95">
+            <path d="M92 162 v160 M108 162 v160 M124 162 v160 M140 162 v160 M156 162 v160
+                     M172 162 v160 M188 162 v160 M204 162 v160 M220 162 v160 M236 162 v160
+                     M252 162 v160 M268 162 v160 M284 162 v160 M300 162 v160 M316 162 v160
+                     M332 162 v160 M348 162 v160 M364 162 v160 M380 162 v160 M396 162 v160
+                     M412 162 v160 M428 162 v160 M444 162 v160 M460 162 v160 M476 162 v160
+                     M492 162 v160 M508 162 v160"/>
+          </g>
+          <g clip-path="url(#sideClip)" stroke="#0E151D" stroke-width="1.6" opacity=".8">
+            <path d="M100 162 v160 M116 162 v160 M132 162 v160 M148 162 v160 M164 162 v160
+                     M180 162 v160 M196 162 v160 M212 162 v160 M228 162 v160 M244 162 v160
+                     M260 162 v160 M276 162 v160 M292 162 v160 M308 162 v160 M324 162 v160
+                     M340 162 v160 M356 162 v160 M372 162 v160 M388 162 v160 M404 162 v160
+                     M420 162 v160 M436 162 v160 M452 162 v160 M468 162 v160 M484 162 v160
+                     M500 162 v160 M516 162 v160"/>
+          </g>
+          <!-- top and bottom rails -->
+          <rect x="66" y="140" width="464" height="16" fill="#1E2A36" stroke="#2E3F52" stroke-width="1"/>
+          <rect x="66" y="330" width="464" height="18" fill="#1B2531" stroke="#2E3F52" stroke-width="1"/>
+          <path d="M96 348 v24 M240 348 v24 M400 348 v24 M504 348 v24" stroke="#2E3F52" stroke-width="4"/>
+          <!-- corner castings -->
+          <g fill="#243141" stroke="#39485C" stroke-width="1">
+            <rect x="62" y="136" width="26" height="24" rx="2"/>
+            <rect x="62" y="326" width="26" height="26" rx="2"/>
+            <rect x="506" y="136" width="26" height="24" rx="2"/>
+            <rect x="506" y="326" width="26" height="26" rx="2"/>
+          </g>
+
+          <!-- door end -->
+          <path d="M524 148 L570 118 V318 L524 336 Z" fill="url(#cDoor)" stroke="#2E3F52" stroke-width="1"/>
+          <path d="M534 152 L562 134 V308 L534 322 Z" fill="none" stroke="#26333F" stroke-width="1"/>
+          <g stroke="#39485C" stroke-width="2" fill="none">
+            <path d="M540 152 V320"/><path d="M552 145 V314"/>
+          </g>
+          <g fill="#39485C">
+            <rect x="536" y="216" width="9" height="16" rx="2"/>
+            <rect x="548" y="209" width="9" height="16" rx="2"/>
+          </g>
+
+          <!-- markings -->
+          <text x="104" y="212" font-family="JetBrains Mono, monospace" font-size="30" font-weight="500"
+                fill="#E8EDF2" letter-spacing="2.6">MSKU 481007-3</text>
+          <text class="fine" x="104" y="236" font-family="JetBrains Mono, monospace" font-size="11.5"
+                fill="#8090A0" letter-spacing="1.4">BOX GROUP BG-0002 · CONNECTION CN-0002</text>
+          <rect class="atrisk-box" x="104" y="256" width="120" height="34" fill="none"
+                stroke="#F5B942" stroke-width="1.4" rx="2"/>
+          <text class="atrisk-t" x="115" y="278" font-family="JetBrains Mono, monospace" font-size="13"
+                fill="#F5B942" letter-spacing="1.4">AT RISK</text>
+          <rect class="fine" x="236" y="256" width="150" height="34" fill="none" stroke="#2E3F52" stroke-width="1.2" rx="2"/>
+          <text class="fine" x="247" y="278" font-family="JetBrains Mono, monospace" font-size="11.5" fill="#8090A0"
+                letter-spacing="1.2">CUT-OFF 22:36</text>
+          <rect class="fine" x="398" y="256" width="112" height="34" fill="none" stroke="#2E3F52" stroke-width="1.2" rx="2"/>
+          <text class="fine" x="409" y="278" font-family="JetBrains Mono, monospace" font-size="11.5" fill="#8090A0"
+                letter-spacing="1.2">CSC PLATE</text>
+        </svg>
+
+        <div class="chip">
+          <span class="n" id="countdown">60<i>min</i></span>
+          <span class="l">Margin to cut-off · CN-0002</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="cue" aria-hidden="true"><i></i>Scroll</div>
+</div>
+</section>
+
+<!-- ==================== 2. THE PROBLEM ==================== -->
+<hr class="rulebar">
+<section id="problem">
+<div class="wrap-wide">
+  <p class="kicker rv">01 · The problem</p>
+  <h2 class="rv">The warning arrives on a channel no rules engine reads</h2>
+  <p class="lede rv">A transhipment connection is a group of boxes that came off one ship and has to
+    be on another before that ship's cut-off. The carrier often knows first, and what the carrier
+    sends is prose in an inbox. The structured notice the terminal operating system acts on can
+    follow hours later, or never move at all.</p>
+
+  <div class="lanes" id="lanes">
+    <figure class="rv">
+      <div class="panel lanefig">
+        <svg viewBox="0 0 620 336" role="img" aria-label="Two lanes on one timeline. On the structured feed the arrival estimates land late and cluster near the cut-off. On the carrier channel one advisory lands hours earlier, and the gap between them is the lead the structured feed did not give.">
+          <text x="20" y="24" font-family="JetBrains Mono, monospace" font-size="11" fill="#8090A0"
+                letter-spacing="1.6">ONE TIMELINE, TWO LANES</text>
+
+          <!-- the cut-off, and the axis -->
+          <path d="M524 46 V300" stroke="#F06A5E" stroke-width="1.4" stroke-dasharray="5 5" opacity=".75"/>
+          <path d="M20 300 H604" stroke="#223040" stroke-width="1"/>
+          <g font-family="JetBrains Mono, monospace" font-size="10" fill="#8090A0">
+            <text x="20" y="320">17:00</text>
+            <text x="190" y="320">19:00</text>
+            <text x="360" y="320">21:00</text>
+            <text x="524" y="320" text-anchor="middle" fill="#F06A5E">CUT-OFF</text>
+          </g>
+          <path d="M20 294 v6 M190 294 v6 M360 294 v6 M524 294 v6" stroke="#223040" stroke-width="1"/>
+
+          <!-- lane one: the structured feed -->
+          <text x="20" y="58" font-family="JetBrains Mono, monospace" font-size="11" fill="#8A939C"
+                letter-spacing="1.4">STRUCTURED FEED</text>
+          <path d="M20 86 H604" stroke="#223040" stroke-width="1"/>
+          <g class="lane-el" style="transition-delay:.40s">
+            <rect x="372" y="72" width="4" height="28" fill="#8A939C" rx="1"/>
+            <rect x="400" y="72" width="4" height="28" fill="#8A939C" rx="1"/>
+            <rect x="428" y="72" width="4" height="28" fill="#8A939C" rx="1"/>
+            <rect x="456" y="72" width="4" height="28" fill="#8A939C" rx="1"/>
+            <rect x="486" y="72" width="4" height="28" fill="#F06A5E" rx="1"/>
+            <text x="514" y="124" text-anchor="end" font-family="JetBrains Mono, monospace"
+                  font-size="10.5" fill="#B4C0CC">arrival estimates land late and cluster</text>
+            <text x="514" y="140" text-anchor="end" font-family="JetBrains Mono, monospace"
+                  font-size="10.5" fill="#F06A5E">the last one was already in the past</text>
+          </g>
+
+          <!-- lane two: the carrier advisory -->
+          <text x="20" y="182" font-family="JetBrains Mono, monospace" font-size="11" fill="#F5B942"
+                letter-spacing="1.4">CARRIER ADVISORY, FREE TEXT</text>
+          <g class="lane-el" style="transition-delay:.70s">
+            <rect x="118" y="192" width="42" height="30" rx="2.5" fill="#161F29"
+                  stroke="#F5B942" stroke-width="1.6"/>
+            <path d="M118.5 193.5 L139 209.5 L159.5 193.5" fill="none" stroke="#F5B942" stroke-width="1.6"/>
+            <path d="M139 222 V240" stroke="#F5B942" stroke-width="1.3" stroke-dasharray="3 4"/>
+            <circle cx="139" cy="240" r="4.5" fill="#F5B942"/>
+            <text x="176" y="206" font-family="JetBrains Mono, monospace" font-size="10.5" fill="#B4C0CC">
+              one advisory, hours earlier</text>
+            <text x="176" y="222" font-family="JetBrains Mono, monospace" font-size="10.5" fill="#8090A0">
+              messy names, missing fields, contradictions</text>
+          </g>
+          <path d="M20 240 H604" stroke="#223040" stroke-width="1"/>
+
+          <!-- the gap between the two -->
+          <g class="lane-el" style="transition-delay:1.00s">
+            <path d="M139 268 H372" stroke="#F5B942" stroke-width="1.2" stroke-dasharray="4 5" opacity=".9"/>
+            <path d="M139 262 v12 M372 262 v12" stroke="#F5B942" stroke-width="1.2" opacity=".9"/>
+            <text x="255" y="288" text-anchor="middle" font-family="JetBrains Mono, monospace"
+                  font-size="10.5" fill="#F5B942">the lead the structured feed did not give</text>
+          </g>
+        </svg>
+      </div>
+      <figcaption>The two lanes as the recording found them. The structured estimates land late and
+        cluster near the cut-off; the carrier's message lands hours earlier and is prose.
+        <span class="fig-src">Shape drawn from the recorded days in
+        <b>evalx/results/ais-slip.json</b>. Synthetic terminal data throughout.</span>
+        <span class="scrollhint">Scroll the figure sideways to read the whole timeline.</span></figcaption>
+    </figure>
+
+    <div>
+      <div class="stat rv">
+        <span class="v hot" data-count="63">63 of 74</span>
+        <p>vessels that berthed 60 or more minutes after their own broadcast arrival estimate had
+          given no structured warning of that size beforehand. Silent share 0.851, bootstrap 0.770
+          to 0.919.</p>
+        <p class="src"><b>evalx/results/ais-slip.json</b> · deck slide 2 · recorded Singapore AIS,
+          24 and 25 August 2026, pseudonymised aggregates</p>
+      </div>
+      <div class="stat rv">
+        <span class="v" data-count="463">463 of 1,106</span>
+        <p>arrival estimates on that feed were already in the past when they were sent, a share of
+          0.419.</p>
+        <p class="src"><b>evalx/results/ais-slip.json</b> · deck slide 2</p>
+      </div>
+      <div class="stat rv">
+        <span class="v" data-count="20">20 of 146</span>
+        <p>berthed vessels had revised that estimate by an hour or more before berthing. Where a
+          warning did come, the median lead was 282.1 minutes.</p>
+        <p class="src"><b>evalx/results/ais-warning-lead.json</b> · deck slide 2</p>
+      </div>
+      <div class="stat rv">
+        <span class="v">84%</span>
+        <p>of PSA's assured vessel calls held their Assured Port Time target in 2025. RELAY is
+          built for the rest.</p>
+        <p class="src">PSA Annual Report 2025, Year in Review p.23 · deck slide 2</p>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ==================== 3. HOW IT DECIDES ==================== -->
+<hr class="rulebar">
+<section id="decides">
+<div class="wrap-wide">
+  <p class="kicker rv">02 · How it decides</p>
+  <h2 class="rv">Eight steps, and each one names what owns it</h2>
+  <p class="lede rv">The decision graph runs thirteen nodes. Eight of them carry the decision, and
+    the colour on each says who owns the step: the language model, the twin and the solver, a rule
+    lookup, the duty officer, or the gated write. Open a step to read what it does, the contract
+    clause that binds it, and the code in this repository that enforces it.</p>
+
+  <div class="legend rv">
+    <span><i style="background:var(--model)"></i>language model</span>
+    <span><i style="background:var(--twin)"></i>twin and solver</span>
+    <span><i style="background:var(--rule-c)"></i>rule lookup</span>
+    <span><i style="background:var(--human)"></i>duty officer</span>
+    <span><i style="background:var(--write)"></i>gated write</span>
+    <span><i style="background:var(--deny)"></i>denial or failure</span>
+  </div>
+
+  <div class="graph rv" id="graph">
+    <button class="node" type="button" id="n-ingest" data-node="ingest" aria-expanded="false"
+            aria-controls="detail" style="--own:var(--rule-c)">
+      <span class="plus" aria-hidden="true"></span>
+      <span class="ix">01</span>
+      <span class="ttl">Ingest and classify</span>
+      <span class="nd">ingest_events · classify</span>
+      <span class="own">rule lookup</span>
+    </button>
+    <button class="node" type="button" id="n-fuse" data-node="fuse" aria-expanded="false"
+            aria-controls="detail" style="--own:var(--model)">
+      <span class="plus" aria-hidden="true"></span>
+      <span class="ix">02</span>
+      <span class="ttl">Read the advisory</span>
+      <span class="nd">fuse_advisory</span>
+      <span class="own">language model</span>
+    </button>
+    <button class="node" type="button" id="n-gate" data-node="gate" aria-expanded="false"
+            aria-controls="detail" style="--own:var(--rule-c)">
+      <span class="plus" aria-hidden="true"></span>
+      <span class="ix">03</span>
+      <span class="ttl">Check completeness</span>
+      <span class="nd">fusion_gate</span>
+      <span class="own">rule lookup</span>
+    </button>
+    <button class="node" type="button" id="n-margin" data-node="margin" aria-expanded="false"
+            aria-controls="detail" style="--own:var(--twin)">
+      <span class="plus" aria-hidden="true"></span>
+      <span class="ix">04</span>
+      <span class="ttl">Compute the margin</span>
+      <span class="nd">assess_feasibility</span>
+      <span class="own">twin</span>
+    </button>
+    <button class="node" type="button" id="n-solve" data-node="solve" aria-expanded="false"
+            aria-controls="detail" style="--own:var(--twin)">
+      <span class="plus" aria-hidden="true"></span>
+      <span class="ix">05</span>
+      <span class="ttl">Allocate the budget</span>
+      <span class="nd">twin.replan_terminal</span>
+      <span class="own">solver, CP-SAT</span>
+    </button>
+    <button class="node" type="button" id="n-price" data-node="price" aria-expanded="false"
+            aria-controls="detail" style="--own:var(--rule-c)">
+      <span class="plus" aria-hidden="true"></span>
+      <span class="ix">06</span>
+      <span class="ttl">Price every option</span>
+      <span class="nd">twin/ev_gate.py</span>
+      <span class="own">rule lookup, row 12</span>
+    </button>
+    <button class="node" type="button" id="n-approve" data-node="approve" aria-expanded="false"
+            aria-controls="detail" style="--own:var(--human)">
+      <span class="plus" aria-hidden="true"></span>
+      <span class="ix">07</span>
+      <span class="ttl">Ask the duty officer</span>
+      <span class="nd">request_approval · whatif</span>
+      <span class="own">duty officer</span>
+    </button>
+    <button class="node" type="button" id="n-execute" data-node="execute" aria-expanded="false"
+            aria-controls="detail" style="--own:var(--write)">
+      <span class="plus" aria-hidden="true"></span>
+      <span class="ix">08</span>
+      <span class="ttl">Execute and verify</span>
+      <span class="nd">execute_actions · verify_effect</span>
+      <span class="own">gated write</span>
+    </button>
+  </div>
+
+  <div id="detail" role="region" aria-live="polite" aria-labelledby="detailTitle" hidden></div>
+
+  <p class="flowline rv"><i></i>Any step can leave the path: below the completeness gate, on an
+    action class the table does not list, or when nobody answers in 120 seconds, the episode
+    escalates with a written summary and writes nothing.<i></i></p>
+  <p class="small rv" style="margin-top:14px">A step can be linked directly, for example
+    <span class="mono">index.html?open=margin</span>, which opens that step when the page loads.
+    Escape closes it.</p>
+
+  <figure class="rv" style="margin-top:clamp(40px,5vw,68px)">
+    <div class="plate wide"><img src="assets/architecture.svg" alt="RELAY architecture: structured events and free-text advisories flow through reconciliation and a completeness gate into deterministic feasibility and a CP-SAT allocation, then through a policy table into a human approval card, a gated write and a tamper-evident ledger" width="780" height="418" loading="lazy"></div>
+    <figcaption>The whole graph at the level the written explanation uses, including the four
+      contracted tool servers and the ledger every step appends to.
+      <span class="fig-src"><b>site/assets/architecture.svg</b> ·
+      deliverables/ARCHITECTURE-AND-CONTROLS.md section 1</span>
+      <span class="scrollhint">Scroll the figure sideways to read the whole graph.</span></figcaption>
+  </figure>
+</div>
+</section>
+
+<!-- ==================== 4. WATCH IT RUN ==================== -->
+<hr class="rulebar">
+<section id="run">
+<div class="wrap">
+  <p class="kicker rv">03 · Watch it run</p>
+  <h2 class="rv">The recorded console, in motion</h2>
+  <p class="lede rv">Twenty seconds cut from the demo recording. The countdown board holds the
+    connection at 41 minutes, the approval card is answered, and the board settles at 101. The
+    console is the operator surface; every measured number on this page comes from the agent's own
+    runs rather than from the console.</p>
+
+  <figure class="rv">
+    <div class="clipwrap">
+      <video id="clip" src="assets/console-loop.mp4" poster="assets/console-loop.jpg"
+             width="1280" height="720" muted loop playsinline preload="metadata" controls
+             aria-label="Twenty seconds of the RELAY operator console: the countdown board, an approval card and the recovered margin"></video>
+    </div>
+    <figcaption>Recorded on the laptop that produced the demo, with the pricing gate off, which is
+      the arm in which this expedite is offered as a card rather than carried as advice.
+      <span class="fig-src"><b>site/assets/console-loop.mp4</b> · full film at
+      <b>video/out/relay-video.mp4</b>. The operator replaces the demo video link with the hosted
+      URL before publishing.</span></figcaption>
+  </figure>
+
+  <div class="stills">
+    <figure class="rv">
+      <div class="shot"><img src="assets/card.jpg" alt="An approval card marked T1, HIGH RISK, APPROVED, for portnet.set_transfer_priority at CRITICAL, showing policy row 4, per-field confidence bars, three editable plan steps and the three options considered with their costs" width="1600" height="1494" loading="lazy"></div>
+      <figcaption><b>The card the officer answered.</b> Policy row 4 after the edit, per-field
+        confidence, the plan steps and every option considered with the constraint that ruled it
+        out.<span class="fig-src">site/assets/card.jpg</span></figcaption>
+    </figure>
+    <figure class="rv">
+      <div class="shot"><img src="assets/escalation.jpg" alt="An approval card marked T1, MEDIUM RISK, EXPIRED_DENIED, with a written deny-by-default escalation summary addressed to the duty supervisor" width="1600" height="2143" loading="lazy"></div>
+      <figcaption><b>Deny by default.</b> Nobody answered within 120 seconds, so the card expired
+        into a denial and a written summary went to the duty supervisor. No write
+        happened.<span class="fig-src">site/assets/escalation.jpg</span></figcaption>
+    </figure>
+    <figure class="rv full">
+      <div class="shot"><img src="assets/chain.jpg" alt="The console trace header showing a red CHAIN BROKEN, EVENT 2: THIS_HASH MISMATCH chip and the line: replay refused, the hash chain does not verify" width="1600" height="131" loading="lazy"></div>
+      <figcaption><b>A broken chain.</b> One edited past event, and replay refuses. The rationale
+        the model wrote is stored under its own label and is excluded from the audit
+        record.<span class="fig-src">site/assets/chain.jpg</span></figcaption>
+    </figure>
+  </div>
+</div>
+</section>
+
+<!-- ==================== 5. STEP BY STEP ==================== -->
+<hr class="rulebar">
+<section id="walk">
+<div class="wrap-wide">
+  <p class="kicker rv">04 · The decision, step by step</p>
+  <h2 class="rv">One email, six steps, forty-one minutes recovered</h2>
+  <p class="lede rv">The hero episode as the ledger records it. Follow the six steps and watch the
+    board change with them. Every value below appears on deck slide 5 and comes from the frozen
+    fixture <span class="mono">stubs/fixtures/scenario_pack_hero.json</span>.</p>
+
+  <div class="scrolly" id="scrolly">
+    <div class="steps" id="steps">
+      <div class="step" data-step="1">
+        <span class="k">Step 1 · Perceive</span>
+        <h4>A checked fact from the email</h4>
+        <p>The model parses the free text into a schema-validated fact with allow-listed keys,
+          labelled untrusted. Completeness scores 0.87 against a gate of 0.60.</p>
+        <span class="stepev">llm_call · model_rationale · fusion_gate</span>
+      </div>
+      <div class="step" data-step="2">
+        <span class="k">Step 2 · Ingest</span>
+        <h4>The twin holds the new arrival</h4>
+        <p>The reconciled arrival enters the twin as a vessel fact, and both connections on that
+          voyage are updated.</p>
+        <span class="stepev">ingest_fact · vessel_eta_update</span>
+      </div>
+      <div class="step" data-step="3">
+        <span class="k">Step 3 · Decide</span>
+        <h4>Margin at the ninetieth percentile</h4>
+        <p>Margin to cut-off is computed at the P90 of the transfer distribution, so feasible means
+          feasible on a bad day. CN-0002 reads 41 minutes and is AT_RISK. The model plays no part in
+          this step.</p>
+        <span class="stepev">feasibility_check · AT_RISK · 41</span>
+      </div>
+      <div class="step" data-step="4">
+        <span class="k">Step 4 · Options</span>
+        <h4>Three costed options</h4>
+        <p>Expedite the yard transfer at 800 US dollars, feasible. Request a cut-off extension at
+          zero, never feasible on its own because a request is not a grant. Rebook at 2,400 US dollars.</p>
+        <span class="stepev">replan_options · 3 options</span>
+      </div>
+      <div class="step" data-step="5">
+        <span class="k">Step 5 · Gate</span>
+        <h4>Policy row 3, tier T1</h4>
+        <p>A table lookup sets the tier and raises a card carrying a single-use token bound to the
+          tool and its arguments, with a 120 second clock.</p>
+        <span class="stepev">policy_gate row 3 · approval_requested</span>
+      </div>
+      <div class="step" data-step="6">
+        <span class="k">Step 6 · Approve and execute</span>
+        <h4>Margin 41 to 101</h4>
+        <p>The officer raises the expedite to CRITICAL. The twin re-simulates, the gate moves to row
+          4, a written justification becomes mandatory and the token re-binds to the edited
+          arguments. The gated write lands and the twin verifies the effect.</p>
+        <span class="stepev">approval_card_edited · policy_gate row 4 · action_executed · verify_effect</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="sticky">
+        <div class="board" id="board">
+          <div class="bh"><span class="dot" id="bdot"></span><span id="bmode">Countdown board</span>
+            <span class="mode" id="bstate">live</span></div>
+          <div class="brow at" id="row2">
+            <span class="id">CN-0002 · BG-0002 · MSKU 481007-3<span class="pill risk" id="p2">at risk</span></span>
+            <span class="meta" id="m2">outbound 0402E · cut-off 22:36</span>
+            <span class="m"><span id="v2">41</span><i>min</i></span>
+          </div>
+          <div class="brow ok" id="row1">
+            <span class="id">CN-0001 · BG-0001<span class="pill ok" id="p1">feasible</span></span>
+            <span class="meta" id="m1">same voyage, same inbound vessel</span>
+            <span class="m"><span id="v1">390</span><i>min</i></span>
+          </div>
+          <ol class="trace" id="trace">
+            <li data-t="1"><span class="tag">llm_call</span> fusion.parse_reconcile, completeness 0.87</li>
+            <li data-t="2"><span class="tag">tool_call</span> twin.ingest_fact, eta_source ADVISORY_RECONCILED</li>
+            <li data-t="3"><span class="tag">tool_call</span> twin.feasibility_check CN-0002</li>
+            <li data-t="4"><span class="tag">tool_call</span> twin.replan_options, 3 options</li>
+            <li data-t="5"><span class="tag">policy_gate</span> row 3, T1, card and token minted</li>
+            <li data-t="6"><span class="tag">action_executed</span> portnet.set_transfer_priority</li>
+          </ol>
+          <div class="bfoot" id="bfoot">Board before the advisory lands.</div>
+        </div>
+        <p class="src rv" style="margin-top:14px">Values on deck slide 5 ·
+          <b>stubs/fixtures/scenario_pack_hero.json</b> · <b>stubs/fixtures/trace_events.jsonl</b></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="note rv">
+    <h4>When several connections break at once</h4>
+    <p>On the cascade pack one inbound slip leaves three connections broken, one at risk and two
+      infeasible, competing for one shift budget. CP-SAT allocates one action to each in a single
+      solve at 5,600 US dollars, taken one card at a time. Across the solver study the joint solver
+      saves 423 connections against a greedy comparator's 408.</p>
+    <p class="src" style="margin-top:12px">deck slide 5 ·
+      <b>evalx/results/cascade-evidence.json</b> · <b>twin/solver_quality.json</b></p>
+  </div>
+</div>
+</section>
+
+<!-- ==================== 6. WHAT IT REFUSES TO DO ==================== -->
+<hr class="rulebar">
+<section id="refuses">
+<div class="wrap-wide">
+  <p class="kicker rv">05 · What it refuses to do</p>
+  <h2 class="rv">Three refusals, in the code that carries them</h2>
+  <p class="lede rv">The controls that matter are the ones that say no. Each excerpt below is taken
+    from the file it names at the lines it names, and each enforces one invariant that nothing
+    upstream can talk its way past.</p>
+
+  <div class="refuse rv">
+    <div>
+      <span class="no">Refusal 01</span>
+      <h3>An action class the table does not list</h3>
+      <p>The policy lookup never raises an error for an unknown tool. It returns the row 10
+        AUTO-DENY entry, so an action class with no established approval policy is denied before an
+        approval card can exist, and the episode escalates with a written summary.</p>
+      <p class="src">Contract: <b>docs/CONTRACT.md</b> section c, row 10. Mirrored row for row in
+        this table. The second auto-deny branch fires on
+        <b>data/packs/no_policy_trigger.json</b>, where the cheapest remedy is a berth-window shift
+        and row 9 has no write tool by design.</p>
+    </div>
+    <figure class="code"><figcaption class="code-head"><span class="p">stubs/policy_stub.py</span><span class="r">lines 131 to 152</span><button class="copy" type="button" data-copy="policy">copy</button></figcaption><pre><code><span class="cl"><span class="n">131</span><span class="t">def lookup(tool: str, args: dict | None = None) -&gt; dict:</span></span>
+<span class="cl"><span class="n">132</span><span class="t">    &quot;&quot;&quot;policy.lookup: deterministic tier + risk + rate row for one action.</span></span>
+<span class="cl"><span class="n">133</span><span class="t">&nbsp;</span></span>
+<span class="cl"><span class="n">134</span><span class="t">    Never an error: an unknown tool/action class returns the row-10</span></span>
+<span class="cl"><span class="n">135</span><span class="t">    AUTO-DENY entry (auto_deny=True), the caller must deny and escalate.</span></span>
+<span class="cl"><span class="n">136</span><span class="t">    &quot;&quot;&quot;</span></span>
+<span class="cl"><span class="n">137</span><span class="t">    args = args or {}</span></span>
+<span class="cl"><span class="n">138</span><span class="t">    for row in POLICY_TABLE:</span></span>
+<span class="cl"><span class="n">139</span><span class="t">        if tool not in row[&quot;tools&quot;]:</span></span>
+<span class="cl"><span class="n">140</span><span class="t">            continue</span></span>
+<span class="cl"><span class="n">141</span><span class="t">        pred = row.get(&quot;arg_predicate&quot;)</span></span>
+<span class="cl"><span class="n">142</span><span class="t">        if pred is not None:</span></span>
+<span class="cl"><span class="n">143</span><span class="t">            field, allowed = pred</span></span>
+<span class="cl"><span class="n">144</span><span class="t">            if args.get(field) not in allowed:</span></span>
+<span class="cl"><span class="n">145</span><span class="t">                continue</span></span>
+<span class="cl"><span class="n">146</span><span class="t">        out = {k: v for k, v in row.items() if k not in (&quot;tools&quot;, &quot;arg_predicate&quot;)}</span></span>
+<span class="cl"><span class="n">147</span><span class="t">        out[&quot;tool&quot;] = tool</span></span>
+<span class="cl"><span class="n">148</span><span class="t">        out[&quot;auto_deny&quot;] = False</span></span>
+<span class="cl"><span class="n">149</span><span class="t">        return out</span></span>
+<span class="cl"><span class="n">150</span><span class="t">    out = dict(AUTO_DENY_ROW)</span></span>
+<span class="cl"><span class="n">151</span><span class="t">    out[&quot;tool&quot;] = tool</span></span>
+<span class="cl"><span class="n">152</span><span class="t">    return out</span></span>
+</code></pre></figure>
+  </div>
+
+  <div class="refuse rv">
+    <div>
+      <span class="no">Refusal 02</span>
+      <h3>A write with no token bound to these arguments</h3>
+      <p>Every write to the terminal-system mock passes one shared gate. It checks the arguments,
+        then degraded mode server-side, then that the caller holds a scoped executor credential,
+        then that the approval token was minted by the approval server for exactly this tool and
+        this argument digest. The gate runs before the fault layer, so an injected
+        GUARDRAIL_BYPASS cannot skip it.</p>
+      <p class="src">Contract: <b>docs/CONTRACT.md</b> section b2 and section c. Fourteen attacks on
+        the approval path are refused after four fixes at the token authority
+        (<b>evalx/results/approval-attacks.json</b>, deck slide 7).</p>
+    </div>
+    <figure class="code"><figcaption class="code-head"><span class="p">stubs/portnet_stub.py</span><span class="r">lines 57 to 79</span><button class="copy" type="button" data-copy="write">copy</button></figcaption><pre><code><span class="cl"><span class="n">57</span><span class="t">def _gate_write(tool: str, action_args: dict, approval_token, agent_credential_id,</span></span>
+<span class="cl"><span class="n">58</span><span class="t">                idempotency_key) -&gt; dict | None:</span></span>
+<span class="cl"><span class="n">59</span><span class="t">    &quot;&quot;&quot;Shared write gate. Returns an error dict, or None when the gate passes.</span></span>
+<span class="cl"><span class="n">60</span><span class="t">&nbsp;</span></span>
+<span class="cl"><span class="n">61</span><span class="t">    Order (CONTRACT §b2): (0) args sanity -&gt; (1) degraded-mode denial,</span></span>
+<span class="cl"><span class="n">62</span><span class="t">    SERVER-SIDE -&gt; (2) credential scope (CSA 2.6) -&gt; (3) approval token</span></span>
+<span class="cl"><span class="n">63</span><span class="t">    verified AGAINST THE APPROVAL SERVER (issuance + binding to</span></span>
+<span class="cl"><span class="n">64</span><span class="t">    tool+args_digest + expiry). The gate runs BEFORE the fault layer, so an</span></span>
+<span class="cl"><span class="n">65</span><span class="t">    injected GUARDRAIL_BYPASS can never skip it.</span></span>
+<span class="cl"><span class="n">66</span><span class="t">    &quot;&quot;&quot;</span></span>
+<span class="cl"><span class="n">67</span><span class="t">    if not idempotency_key or not isinstance(idempotency_key, str):</span></span>
+<span class="cl"><span class="n">68</span><span class="t">        return make_error(&quot;INVALID_ARGS&quot;, &quot;idempotency_key must be a non-empty string&quot;)</span></span>
+<span class="cl"><span class="n">69</span><span class="t">    degrading = degraded_mode_active()</span></span>
+<span class="cl"><span class="n">70</span><span class="t">    if degrading is not None:</span></span>
+<span class="cl"><span class="n">71</span><span class="t">        return make_error(</span></span>
+<span class="cl"><span class="n">72</span><span class="t">            &quot;DEGRADED_MODE&quot;,</span></span>
+<span class="cl"><span class="n">73</span><span class="t">            &quot;write refused: system is DEGRADED_TO_ADVISORY &quot;</span></span>
+<span class="cl"><span class="n">74</span><span class="t">            f&quot;({degrading[&#x27;fault_type&#x27;]} on {degrading[&#x27;target_tool&#x27;]}); ALL writes are denied &quot;</span></span>
+<span class="cl"><span class="n">75</span><span class="t">            &quot;while degraded, regardless of tier or approval (CONTRACT §c)&quot;,</span></span>
+<span class="cl"><span class="n">76</span><span class="t">            context={&quot;fault_id&quot;: degrading[&quot;fault_id&quot;], &quot;target_tool&quot;: degrading[&quot;target_tool&quot;]},</span></span>
+<span class="cl"><span class="n">77</span><span class="t">        )</span></span>
+<span class="cl"><span class="n">78</span><span class="t">    if not approval_token:</span></span>
+<span class="cl"><span class="n">79</span><span class="t">        return make_error(</span></span>
+</code></pre></figure>
+  </div>
+
+  <div class="refuse rv">
+    <div>
+      <span class="no">Refusal 03</span>
+      <h3>A record that has been edited</h3>
+      <p>Nothing but the ledger writes the chain. Each event seals the previous hash into its own,
+        and a head anchor records the count and the tip so a truncation is visible as well as an
+        edit. Replay refuses a chain that does not verify.</p>
+      <p class="src">Contract: <b>docs/CONTRACT.md</b> section d, 18 event types on the CSA 4.3
+        field set. The ledger is tamper-evident rather than immutable: an adversary with root
+        access and the source can rewrite it, which is why production places the store outside the
+        agent's credential scope.</p>
+    </div>
+    <figure class="code"><figcaption class="code-head"><span class="p">stubs/ledger_stub.py</span><span class="r">lines 189 to 200</span><button class="copy" type="button" data-copy="ledger">copy</button></figcaption><pre><code><span class="cl"><span class="n">189</span><span class="t">def _append_locked(path: str, event: dict) -&gt; dict:</span></span>
+<span class="cl"><span class="n">190</span><span class="t">    &quot;&quot;&quot;The critical section of append(). Caller holds both append locks.&quot;&quot;&quot;</span></span>
+<span class="cl"><span class="n">191</span><span class="t">    count, prev = _tip(path)</span></span>
+<span class="cl"><span class="n">192</span><span class="t">    sealed = dict(event)</span></span>
+<span class="cl"><span class="n">193</span><span class="t">    sealed[&quot;event_id&quot;] = f&quot;TRC-{count + 1:06d}&quot;</span></span>
+<span class="cl"><span class="n">194</span><span class="t">    sealed[&quot;prev_hash&quot;] = prev</span></span>
+<span class="cl"><span class="n">195</span><span class="t">    sealed[&quot;this_hash&quot;] = chain_hash(sealed)</span></span>
+<span class="cl"><span class="n">196</span><span class="t">    with open(path, &quot;a&quot;, encoding=&quot;utf-8&quot;) as fh:</span></span>
+<span class="cl"><span class="n">197</span><span class="t">        fh.write(json.dumps(sealed, sort_keys=True) + &quot;\n&quot;)</span></span>
+<span class="cl"><span class="n">198</span><span class="t">    _remember_tip(path, count + 1, sealed[&quot;this_hash&quot;])</span></span>
+<span class="cl"><span class="n">199</span><span class="t">    _write_anchor(path, count + 1, sealed[&quot;this_hash&quot;])</span></span>
+<span class="cl"><span class="n">200</span><span class="t">    return sealed</span></span>
+</code></pre></figure>
+  </div>
+
+  <div class="chainwrap rv">
+    <h3>The tamper demonstration, five events of the hero episode</h3>
+    <p class="small" style="max-width:70ch;margin-bottom:22px">Five consecutive events from the
+      frozen trace, with the hash each one sealed. Press the button to change one character in the
+      third event. Every hash from that point on is recomputed, so the chain no longer verifies and
+      replay is refused. Both hash sets were produced by this repository's own
+      <span class="mono">stubs.chain_hash</span> over
+      <span class="mono">stubs/fixtures/trace_events.jsonl</span>.</p>
+    <div class="chain" id="chain"><div class="ev"><span class="id">TRC-000009</span><div class="ty">policy_gate</div><p class="ac">policy.lookup: portnet.set_transfer_priority(EXPEDITE) -&gt; row 3, T1 (first...</p><span class="hl">this_hash</span><span class="h">e5b166ede76d025e</span></div><div class="ev"><span class="id">TRC-000010</span><div class="ty">approval_requested</div><p class="ac">approval.request_card CARD-2026-0825-0001 (deny_after_s=120)</p><span class="hl">this_hash</span><span class="h">949645746d8c814a</span></div><div class="ev"><span class="id">TRC-000011</span><div class="ty">approval_granted</div><p class="ac">approval.decide(CARD-2026-0825-0001, APPROVED), token minted server-side, ...</p><span class="hl">this_hash</span><span class="h">f0c0629c9fd21da3</span></div><div class="ev"><span class="id">TRC-000012</span><div class="ty">human_note</div><p class="ac">note on CARD-2026-0825-0001: &#x27;expedite ok; watch Y12 density, hold CRITICA...</p><span class="hl">this_hash</span><span class="h">fe0c84c8f68bdef6</span></div><div class="ev"><span class="id">TRC-000013</span><div class="ty">action_executed</div><p class="ac">portnet.set_transfer_priority(BG-0002, EXPEDITE) [idempotency_key=demo-tp-...</p><span class="hl">this_hash</span><span class="h">4bafe93b31defaaf</span></div></div>
+    <div class="chainbar">
+      <button class="btn" type="button" id="tamper">Edit an event</button>
+      <span id="chainState">Chain verifies, 5 of 5 events</span>
+    </div>
+    <p class="src" style="margin-top:14px">Events TRC-000009 to TRC-000013 ·
+      <b>stubs/fixtures/trace_events.jsonl</b> · hash function <b>stubs/__init__.py</b>
+      chain_hash</p>
+  </div>
+</div>
+</section>
+
+<!-- ==================== 7. EVIDENCE ==================== -->
+<hr class="rulebar">
+<section id="evidence">
+<div class="wrap">
+  <p class="kicker rv">06 · Evidence</p>
+  <h2 class="rv">Every number names the file that produced it</h2>
+  <p class="lede rv">Each measurement below comes from a committed script, is written to a results
+    file, and is bound to the deck by <span class="mono">evalx/claims_check.py</span>, which fails
+    if a page and a results file disagree.</p>
+
+  <div class="stats rv">
+    <div><span class="v hot" data-count="35">35</span>
+      <span class="l">connections at risk only in an email, out of 299 at-risk scenarios. Rules saw
+        none; all 35 went to a person.</span>
+      <span class="s">evalx/results/sweep-full-n500.final.json</span></div>
+    <div><span class="v" data-count="320">320 of 320</span>
+      <span class="l">verdicts on which an independent oracle, written from the contract text,
+        agrees with the twin.</span>
+      <span class="s">evalx/results/validity-oracle-n320.json</span></div>
+    <div><span class="v" data-count="56">56 of 56</span>
+      <span class="l">mutation probes caught. Each named control was switched off and had to make a
+        green test go red. 0 survived.</span>
+      <span class="s">evalx/results/mutation-probes.json</span></div>
+    <div><span class="v" data-count="12">12 of 12</span>
+      <span class="l">prompt-injection advisories produced 0 unsafe tool calls through the real
+        graph. Nine escalate before a tool is chosen.</span>
+      <span class="s">evalx/results/fusion-ladder.json</span></div>
+    <div><span class="v" data-count="10000">10,000</span>
+      <span class="l">episodes in a soak run with faults in a quarter of them: 0 writes without an
+        approval, 0 chain failures, p99 21.7 ms.</span>
+      <span class="s">evalx/results/soak-profile.json</span></div>
+  </div>
+
+  <div class="figrow">
+    <figure class="rv">
+      <div class="plate"><img src="assets/catch-rate.svg" alt="Catch rate on at-risk connections: the rules-only baseline reaches 0.883 with a 95 percent confidence interval of 0.846 to 0.920, the agent reaches 1.000" width="780" height="300" loading="lazy"></div>
+      <figcaption>Over 500 seeded scenarios the rules-only lane reaches 0.883 and the agent lane
+        1.00. The agent's 1.00 is true by construction and is marked as such: the sweep grades
+        at-risk with the same feasibility engine the agent calls.
+        <span class="fig-src"><b>evalx/results/sweep-full-n500.final.json</b> ·
+        site/assets/catch-rate.svg</span>
+        <span class="scrollhint">Scroll the figure sideways to read it.</span></figcaption>
+    </figure>
+
+    <figure class="rv">
+      <div class="plate"><img src="assets/fusion-ladder.svg" alt="Fusion tier ladder over 200 advisories: extraction accuracy 0.548 for the regex tier, 0.575 for the local 3B model and 0.726 for the hybrid router, with contradiction flag recall 0.471, 1.000 and 1.000" width="780" height="340" loading="lazy"></div>
+      <figcaption>Three ways of reading the same 200 advisories. The hybrid router extracts every
+        field exactly on 0.726 of them against 0.548 for a regex baseline and 0.575 for the local
+        model alone, and it flags every seeded contradiction. Its gate routing, 0.850, sits below
+        the baseline's 0.865, and the lower figure is the one published.
+        <span class="fig-src"><b>evalx/results/fusion-ladder.json</b> ·
+        site/assets/fusion-ladder.svg</span>
+        <span class="scrollhint">Scroll the figure sideways to read it.</span></figcaption>
+    </figure>
+
+    <figure class="rv">
+      <div class="plate"><img src="assets/ev-gate.svg" alt="The expected-value gate over the same 500 scenarios: expedites booked fall from 173 to 29, and expedite spend per rollover avoided falls from 60,835 US dollars to 19,745" width="780" height="320" loading="lazy"></div>
+      <figcaption>The agent priced its own actions and declined most of them. Expedites booked fall
+        from 173 to 29, and spend per rollover avoided falls from 60,835 US dollars to 19,745. The
+        157 at-risk connections it no longer writes for stay on the board as advice with the
+        probability, the value and the cost attached.
+        <span class="fig-src"><b>evalx/results/save-value-audit-n500.json</b> and
+        <b>-evgate.json</b> · site/assets/ev-gate.svg</span>
+        <span class="scrollhint">Scroll the figure sideways to read it.</span></figcaption>
+    </figure>
+  </div>
+
+  <div class="tblwrap rv">
+    <table>
+      <caption class="src" style="caption-side:bottom;text-align:left;padding:12px 16px">
+        A subset of the evidence sheet. The full workings, the confidence intervals, the ablations
+        and the measurements that came out badly are in deliverables/EVIDENCE-SHEET.md.
+      </caption>
+      <thead><tr><th scope="col">Measurement</th><th scope="col">Result</th><th scope="col">Results file</th></tr></thead>
+      <tbody>
+        <tr><td class="what">Scenarios with an at-risk connection, N = 500 seeded worlds</td>
+            <td><span class="r">299 of 500</span></td>
+            <td><span class="f">evalx/results/sweep-full-n500.final.json</span></td></tr>
+        <tr><td class="what">Escalations raised on scenarios that were never at risk</td>
+            <td><span class="r">0 of 201</span></td>
+            <td><span class="f">same file</span></td></tr>
+        <tr><td class="what">Save rate over the same sweep</td>
+            <td><span class="r">0.579</span></td>
+            <td><span class="f">same file</span></td></tr>
+        <tr><td class="what">Re-planner against a greedy comparator, 567 broken connections</td>
+            <td><span class="r">423 saved against 408, never worse</span></td>
+            <td><span class="f">twin/solver_quality.json</span></td></tr>
+        <tr><td class="what">Seeded wrong recommendations, 400 generated worlds</td>
+            <td><span class="r">129 of 129 caught, 0 cards, 0 writes</span></td>
+            <td><span class="f">evalx/results/oversight-probes.json</span></td></tr>
+        <tr><td class="what">Attacks on the approval path, after four fixes</td>
+            <td><span class="r">14 of 14 refused</span></td>
+            <td><span class="f">evalx/results/approval-attacks.json</span></td></tr>
+        <tr><td class="what">External berth-allocation benchmark, 10 Port of Barcelona instances, 293 ships</td>
+            <td><span class="r">10 solved, 8 proved optimal, 1 improved</span></td>
+            <td><span class="f">evalx/results/external-benchmark.json</span></td></tr>
+        <tr><td class="what">Model tokens per advisory episode, local tier, cost imputed at zero</td>
+            <td><span class="r">4,689.7</span></td>
+            <td><span class="f">deck slide 8 · evalx/results/efficiency-eval.json</span></td></tr>
+        <tr><td class="what">Modelled share of approval cards that expire, one officer at half availability</td>
+            <td><span class="r">35.6%</span></td>
+            <td><span class="f">evalx/results/oversight-load.json</span></td></tr>
+        <tr><td class="what">Modelled annual result for the chain under the shipped gate</td>
+            <td><span class="r">+87,215 US dollars, positive with probability 0.683</span></td>
+            <td><span class="f">evalx/results/impact-model.json</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note rv">
+    <h4>What these numbers are not</h4>
+    <p>The 500-scenario sweep is a simulator grading itself. Its ground truth is the twin's own
+      feasibility check, its worlds are generated from cited public rates, and its approver never
+      declines, so it measures the deterministic decision path under conditions it set. Two rows
+      are true by construction and are marked wherever they appear: the agent's 1.00 catch rate and
+      the 0 of 201 are wiring rather than findings. An independent oracle written from the contract
+      text agrees with the twin on 320 of 320 verdicts, which narrows that objection without
+      closing it. No desk has been staffed with this system, so the expiry rates come from a
+      queueing model, and there is no PORTNET integration behind any of it.</p>
+    <p class="src" style="margin-top:14px">deck slides 7 and 10 ·
+      <b>evalx/results/validity-oracle-n320.json</b> · <b>evalx/results/oversight-load.json</b></p>
+  </div>
+</div>
+</section>
+
+<!-- ==================== 8. LIMITS AND THE ASK ==================== -->
+<hr class="rulebar">
+<section id="limits">
+<div class="wrap">
+  <p class="kicker rv">07 · Limits and the ask</p>
+  <h2 class="rv">What is not built, and what would replace an assumption with a measurement</h2>
+
+  <div class="split">
+    <div>
+      <h3 class="rv" style="margin-bottom:18px">Limits</h3>
+      <div class="cards rv">
+        <div class="pcard limit"><span class="t">Integration</span>
+          <p>There is no PORTNET integration. The adapter is stubbed against a frozen contract, and
+            berth and arrival-time changes are advisory only by design.</p></div>
+        <div class="pcard limit"><span class="t">Data</span>
+          <p>All terminal state, connections, vessels and advisories are synthetic and labelled so
+            in the data itself. One event carries a real arrival-drift magnitude recorded from a
+            Singapore bounding box; the terminal state it lands on is synthetic.</p></div>
+        <div class="pcard limit"><span class="t">The weakest component</span>
+          <p>The local 3B model invents an arrival time in 47.7% of the cases where none exists. The
+            deterministic layer contains that, and the hybrid router brings it to 11.9%. Both
+            figures are published rather than smoothed.</p></div>
+        <div class="pcard limit"><span class="t">A proposal is not a grant</span>
+          <p>A rebooking counts a box as saved because it is allocated to the next sailing, while
+            the margin against the original cut-off does not move until the carrier answers. The
+            board labels it pending.</p></div>
+        <div class="pcard limit"><span class="t">Scope of an episode</span>
+          <p>An episode plans across the connections its own evidence touches, not the whole board,
+            so a board-wide cascade with unrelated causes is still several episodes.</p></div>
+        <div class="pcard limit"><span class="t">Governance wording</span>
+          <p>RELAY is aligned with IMDA's Model AI Governance Framework for Agentic AI v1.5 and
+            CSA's agentic addendum v1.0. It is not certified and it has not been audited.</p></div>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="rv" style="margin-bottom:18px">The ask</h3>
+      <div class="cards rv">
+        <div class="pcard ask"><span class="t">Connection outcomes</span>
+          <p>Anonymised connection outcomes, to calibrate the twin and replace the chosen rows in
+            the impact model, the storage charge first.</p></div>
+        <div class="pcard ask"><span class="t">Interface documents</span>
+          <p>Interface documentation for PORTNET and the Service Allocation Tool, so RELAY runs
+            between planning cycles rather than beside them.</p></div>
+        <div class="pcard ask"><span class="t">Alert taxonomy</span>
+          <p>PSA's own alert taxonomy, so the tiers line up with the categories the remote
+            operations team already uses.</p></div>
+        <div class="pcard ask"><span class="t">First deployment</span>
+          <p>Advisory. A shadow-mode run beside the duty desk with cards shown and not executed,
+            measured by officer acceptance rate and time to decision. T1 writes follow that
+            evidence.</p></div>
+      </div>
+      <p class="src rv" style="margin-top:18px">deck slide 10 · <b>README.md</b> ·
+        <b>docs/SPEC.md</b></p>
+    </div>
+  </div>
+</div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <div>
+        <h4>Project</h4>
+        <ul>
+          <li><a href="https://github.com/thylinao1/relay-psa-codesprint">Repository</a></li>
+          <li><a href="../video/out/relay-video.mp4">Demo video</a></li>
+          <li><a href="../deliverables/deck/relay-deck.html">Submission deck</a></li>
+          <li><a href="../README.md">README</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Written explanation</h4>
+        <ul>
+          <li><a href="../deliverables/ARCHITECTURE-AND-CONTROLS.md">Architecture and controls</a></li>
+          <li><a href="../docs/CONTRACT.md">The frozen contract</a></li>
+          <li><a href="../docs/SPEC.md">Specification</a></li>
+          <li><a href="../docs/SECURITY-REVIEW.md">Security review</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Evidence</h4>
+        <ul>
+          <li><a href="../deliverables/EVIDENCE-SHEET.md">Evidence sheet</a></li>
+          <li><a href="../deliverables/FALSIFICATION-CERTIFICATE.md">Falsification certificate</a></li>
+          <li><a href="../docs/GOVERNED-EDIT-PATTERN.md">Governed edit pattern</a></li>
+          <li><a href="../THIRD-PARTY.md">Third-party terms</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Reproduce</h4>
+        <ul>
+          <li class="mono small">python3 -m venv .venv</li>
+          <li class="mono small">.venv/bin/python -m stubs.selftest</li>
+          <li class="mono small">.venv/bin/python -m pytest -q</li>
+          <li class="mono small">.venv/bin/python console/demo_walk.py</li>
+        </ul>
+      </div>
+    </div>
+    <p class="footnote">All terminal data on this page is synthetic and is labelled
+      <b>SYNTHETIC</b> in the data itself. There is no PSA data here, no API key and no PORTNET
+      integration. Two partial days of Singapore AIS are used as pseudonymised aggregates. The
+      ledger is tamper-evident, not immutable. Code is MIT licensed; dependency and data-source
+      terms are listed in THIRD-PARTY.md. Built for PSA Code Sprint 2.0 (2026).</p>
+  </div>
+</footer>
+
+<script id="codeSrc" type="application/json">{"ingest": {"html": "<figure class=\"code\"><figcaption class=\"code-head\"><span class=\"p\">agentcore/graph.py<\/span><span class=\"r\">lines 135 to 150<\/span><button class=\"copy\" type=\"button\" data-copy=\"ingest\">copy<\/button><\/figcaption><pre><code><span class=\"cl\"><span class=\"n\">135<\/span><span class=\"t\">def classify(state: GraphState) -&gt; dict:<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">136<\/span><span class=\"t\">    out = _budget(state)<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">137<\/span><span class=\"t\">    if out.get(&quot;escalate_reason&quot;):<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">138<\/span><span class=\"t\">        return out<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">139<\/span><span class=\"t\">    counts: dict = {}<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">140<\/span><span class=\"t\">    for ev in state.get(&quot;events&quot;, []):<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">141<\/span><span class=\"t\">        counts[ev[&quot;event_type&quot;]] = counts.get(ev[&quot;event_type&quot;], 0) + 1<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">142<\/span><span class=\"t\">    out[&quot;event_counts&quot;] = counts<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">143<\/span><span class=\"t\">    _bump(state, out, &quot;rules&quot;)<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">144<\/span><span class=\"t\">    route = &quot;fuse_advisory&quot; if state.get(&quot;advisory&quot;) else &quot;assess_feasibility&quot;<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">145<\/span><span class=\"t\">    _trace(state, &quot;rule_eval&quot;, &quot;rule&quot;,<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">146<\/span><span class=\"t\">           f&quot;classify: {sum(counts.values())} structured events {counts}; &quot;<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">147<\/span><span class=\"t\">           f&quot;advisory={&#x27;present&#x27; if state.get(&#x27;advisory&#x27;) else &#x27;none&#x27;} -&gt; route {route} &quot;<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">148<\/span><span class=\"t\">           &quot;(rules tier, no LLM)&quot;,<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">149<\/span><span class=\"t\">           counts, {&quot;route&quot;: route}, tier=&quot;rules&quot;)<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">150<\/span><span class=\"t\">    return out<\/span><\/span>\n<\/code><\/pre><\/figure>", "text": "def classify(state: GraphState) -> dict:\n    out = _budget(state)\n    if out.get(\"escalate_reason\"):\n        return out\n    counts: dict = {}\n    for ev in state.get(\"events\", []):\n        counts[ev[\"event_type\"]] = counts.get(ev[\"event_type\"], 0) + 1\n    out[\"event_counts\"] = counts\n    _bump(state, out, \"rules\")\n    route = \"fuse_advisory\" if state.get(\"advisory\") else \"assess_feasibility\"\n    _trace(state, \"rule_eval\", \"rule\",\n           f\"classify: {sum(counts.values())} structured events {counts}; \"\n           f\"advisory={'present' if state.get('advisory') else 'none'} -> route {route} \"\n           \"(rules tier, no LLM)\",\n           counts, {\"route\": route}, tier=\"rules\")\n    return out"}, "fuse": {"html": "<figure class=\"code\"><figcaption class=\"code-head\"><span class=\"p\">agentcore/fusion.py<\/span><span class=\"r\">lines 110 to 122<\/span><button class=\"copy\" type=\"button\" data-copy=\"fuse\">copy<\/button><\/figcaption><pre><code><span class=\"cl\"><span class=\"n\">110<\/span><span class=\"t\"># STRUCTURAL AGENCY BOUNDARY (CONTRACT §e). The reconciled fact is DATA only.<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">111<\/span><span class=\"t\"># These are the ONLY keys the fusion output may carry (frozen against<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">112<\/span><span class=\"t\"># golden_advisory.json.expected_fact). Any key outside this set is an<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">113<\/span><span class=\"t\"># instruction-injection attempt and is refused: the schema has no field that<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">114<\/span><span class=\"t\"># could name a tool, tier or policy row.<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">115<\/span><span class=\"t\"># ---------------------------------------------------------------------------<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">116<\/span><span class=\"t\">_FACT_ALLOWLIST = frozenset({<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">117<\/span><span class=\"t\">    &quot;fact_type&quot;, &quot;advisory_id&quot;, &quot;vessel_imo&quot;, &quot;vessel_name_normalised&quot;, &quot;voyage_in&quot;,<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">118<\/span><span class=\"t\">    &quot;previous_eta&quot;, &quot;new_eta&quot;, &quot;eta_drift_minutes&quot;, &quot;outbound_vessel_name_normalised&quot;,<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">119<\/span><span class=\"t\">    &quot;voyage_out&quot;, &quot;cutoff_confirmed&quot;, &quot;rotation_change&quot;, &quot;affected_connections&quot;,<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">120<\/span><span class=\"t\">    &quot;contradictions&quot;,<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">121<\/span><span class=\"t\">})<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">122<\/span><span class=\"t\">&nbsp;<\/span><\/span>\n<\/code><\/pre><\/figure>", "text": "# STRUCTURAL AGENCY BOUNDARY (CONTRACT §e). The reconciled fact is DATA only.\n# These are the ONLY keys the fusion output may carry (frozen against\n# golden_advisory.json.expected_fact). Any key outside this set is an\n# instruction-injection attempt and is refused: the schema has no field that\n# could name a tool, tier or policy row.\n# ---------------------------------------------------------------------------\n_FACT_ALLOWLIST = frozenset({\n    \"fact_type\", \"advisory_id\", \"vessel_imo\", \"vessel_name_normalised\", \"voyage_in\",\n    \"previous_eta\", \"new_eta\", \"eta_drift_minutes\", \"outbound_vessel_name_normalised\",\n    \"voyage_out\", \"cutoff_confirmed\", \"rotation_change\", \"affected_connections\",\n    \"contradictions\",\n})\n"}, "gate": {"html": "<figure class=\"code\"><figcaption class=\"code-head\"><span class=\"p\">agentcore/graph.py<\/span><span class=\"r\">lines 238 to 254<\/span><button class=\"copy\" type=\"button\" data-copy=\"gate\">copy<\/button><\/figcaption><pre><code><span class=\"cl\"><span class=\"n\">238<\/span><span class=\"t\">def fusion_gate(state: GraphState) -&gt; dict:<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">239<\/span><span class=\"t\">    out = _budget(state)<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">240<\/span><span class=\"t\">    if out.get(&quot;escalate_reason&quot;):<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">241<\/span><span class=\"t\">        return out<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">242<\/span><span class=\"t\">    score = state[&quot;fusion_confidence&quot;][&quot;fusion_completeness_score&quot;]<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">243<\/span><span class=\"t\">    passed = score &gt;= FUSION_COMPLETENESS_THRESHOLD<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">244<\/span><span class=\"t\">    _bump(state, out, &quot;rules&quot;)<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">245<\/span><span class=\"t\">    _trace(state, &quot;rule_eval&quot;, &quot;rule&quot;,<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">246<\/span><span class=\"t\">           f&quot;fusion_gate: fusion_completeness_score {score} vs &quot;<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">247<\/span><span class=\"t\">           f&quot;{FUSION_COMPLETENESS_THRESHOLD} -&gt; {&#x27;PASS&#x27; if passed else &#x27;ESCALATE&#x27;}&quot;,<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">248<\/span><span class=\"t\">           {&quot;fusion_completeness_score&quot;: score}, {&quot;passed&quot;: passed}, tier=&quot;rules&quot;)<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">249<\/span><span class=\"t\">    if not passed:<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">250<\/span><span class=\"t\">        out[&quot;escalate_reason&quot;] = (<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">251<\/span><span class=\"t\">            f&quot;fusion_completeness_score {score} &lt; {FUSION_COMPLETENESS_THRESHOLD}: &quot;<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">252<\/span><span class=\"t\">            &quot;do not ingest a fact this incomplete, escalate, never guess&quot;)<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">253<\/span><span class=\"t\">        return out<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">254<\/span><span class=\"t\">&nbsp;<\/span><\/span>\n<\/code><\/pre><\/figure>", "text": "def fusion_gate(state: GraphState) -> dict:\n    out = _budget(state)\n    if out.get(\"escalate_reason\"):\n        return out\n    score = state[\"fusion_confidence\"][\"fusion_completeness_score\"]\n    passed = score >= FUSION_COMPLETENESS_THRESHOLD\n    _bump(state, out, \"rules\")\n    _trace(state, \"rule_eval\", \"rule\",\n           f\"fusion_gate: fusion_completeness_score {score} vs \"\n           f\"{FUSION_COMPLETENESS_THRESHOLD} -> {'PASS' if passed else 'ESCALATE'}\",\n           {\"fusion_completeness_score\": score}, {\"passed\": passed}, tier=\"rules\")\n    if not passed:\n        out[\"escalate_reason\"] = (\n            f\"fusion_completeness_score {score} < {FUSION_COMPLETENESS_THRESHOLD}: \"\n            \"do not ingest a fact this incomplete, escalate, never guess\")\n        return out\n"}, "margin": {"html": "<figure class=\"code\"><figcaption class=\"code-head\"><span class=\"p\">twin/feasibility.py<\/span><span class=\"r\">lines 127 to 151<\/span><button class=\"copy\" type=\"button\" data-copy=\"margin\">copy<\/button><\/figcaption><pre><code><span class=\"cl\"><span class=\"n\">127<\/span><span class=\"t\">    def check_connection(self, conn: dict, as_of: str | None = None) -&gt; dict:<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">128<\/span><span class=\"t\">        completeness, missing = self.completeness(conn)<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">129<\/span><span class=\"t\">        computed_at = as_of or self.world[&quot;as_of&quot;]<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">130<\/span><span class=\"t\">        if completeness &lt; COMPLETENESS_ESCALATE_THRESHOLD:<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">131<\/span><span class=\"t\">            # Refuse to guess: margin stays null, verdict escalates (SPEC SC-3).<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">132<\/span><span class=\"t\">            return {<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">133<\/span><span class=\"t\">                &quot;connection_id&quot;: conn[&quot;connection_id&quot;],<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">134<\/span><span class=\"t\">                &quot;verdict&quot;: VERDICT_ESCALATE,<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">135<\/span><span class=\"t\">                &quot;feasible&quot;: None,<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">136<\/span><span class=\"t\">                &quot;margin_minutes&quot;: None,<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">137<\/span><span class=\"t\">                &quot;completeness_score&quot;: completeness,<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">138<\/span><span class=\"t\">                &quot;components&quot;: None,<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">139<\/span><span class=\"t\">                &quot;missing_fields&quot;: missing,<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">140<\/span><span class=\"t\">                &quot;computed_at&quot;: computed_at,<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">141<\/span><span class=\"t\">            }<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">142<\/span><span class=\"t\">        est = conn[&quot;estimates&quot;]<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">143<\/span><span class=\"t\">        components = {<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">144<\/span><span class=\"t\">            &quot;eta&quot;: conn[&quot;inbound&quot;][&quot;eta&quot;],<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">145<\/span><span class=\"t\">            &quot;discharge_minutes&quot;: est[&quot;discharge_minutes&quot;],<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">146<\/span><span class=\"t\">            &quot;yard_transfer_minutes&quot;: est[&quot;yard_transfer_minutes&quot;],<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">147<\/span><span class=\"t\">            &quot;restow_minutes&quot;: est[&quot;restow_minutes&quot;],<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">148<\/span><span class=\"t\">            &quot;buffer_p90_minutes&quot;: est[&quot;buffer_p90_minutes&quot;],<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">149<\/span><span class=\"t\">        }<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">150<\/span><span class=\"t\">        ready_time = add_minutes(conn[&quot;inbound&quot;][&quot;eta&quot;], self.processing_minutes(conn))<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">151<\/span><span class=\"t\">        margin = round(minutes_between(conn[&quot;cut_off&quot;], ready_time), 1)<\/span><\/span>\n<\/code><\/pre><\/figure>", "text": "    def check_connection(self, conn: dict, as_of: str | None = None) -> dict:\n        completeness, missing = self.completeness(conn)\n        computed_at = as_of or self.world[\"as_of\"]\n        if completeness < COMPLETENESS_ESCALATE_THRESHOLD:\n            # Refuse to guess: margin stays null, verdict escalates (SPEC SC-3).\n            return {\n                \"connection_id\": conn[\"connection_id\"],\n                \"verdict\": VERDICT_ESCALATE,\n                \"feasible\": None,\n                \"margin_minutes\": None,\n                \"completeness_score\": completeness,\n                \"components\": None,\n                \"missing_fields\": missing,\n                \"computed_at\": computed_at,\n            }\n        est = conn[\"estimates\"]\n        components = {\n            \"eta\": conn[\"inbound\"][\"eta\"],\n            \"discharge_minutes\": est[\"discharge_minutes\"],\n            \"yard_transfer_minutes\": est[\"yard_transfer_minutes\"],\n            \"restow_minutes\": est[\"restow_minutes\"],\n            \"buffer_p90_minutes\": est[\"buffer_p90_minutes\"],\n        }\n        ready_time = add_minutes(conn[\"inbound\"][\"eta\"], self.processing_minutes(conn))\n        margin = round(minutes_between(conn[\"cut_off\"], ready_time), 1)"}, "solve": {"html": "<figure class=\"code\"><figcaption class=\"code-head\"><span class=\"p\">twin/solver.py<\/span><span class=\"r\">lines 387 to 404<\/span><button class=\"copy\" type=\"button\" data-copy=\"solve\">copy<\/button><\/figcaption><pre><code><span class=\"cl\"><span class=\"n\">387<\/span><span class=\"t\">        # Solve 1: maximise saved.<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">388<\/span><span class=\"t\">        model, x, saved, cost = build_model()<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">389<\/span><span class=\"t\">        model.maximize(saved)<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">390<\/span><span class=\"t\">        solver, status = _solve_stage(model, SOLVE_STAGES[0])<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">391<\/span><span class=\"t\">        solve_log.append({&quot;stage&quot;: SOLVE_STAGES[0], &quot;status&quot;: status})<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">392<\/span><span class=\"t\">        best_saved = int(solver.objective_value)<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">393<\/span><span class=\"t\">        # Solve 2: minimise cost at best_saved.<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">394<\/span><span class=\"t\">        model, x, saved, cost = build_model(saved_target=best_saved)<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">395<\/span><span class=\"t\">        model.minimize(cost)<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">396<\/span><span class=\"t\">        solver, status = _solve_stage(model, SOLVE_STAGES[1])<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">397<\/span><span class=\"t\">        solve_log.append({&quot;stage&quot;: SOLVE_STAGES[1], &quot;status&quot;: status})<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">398<\/span><span class=\"t\">        best_cost = int(round(solver.objective_value))<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">399<\/span><span class=\"t\">        # Solve 3: minimise rank sum at (best_saved, best_cost), total order.<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">400<\/span><span class=\"t\">        model, x, saved, cost = build_model(saved_target=best_saved, cost_target=best_cost)<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">401<\/span><span class=\"t\">        model.minimize(sum(i * x[i] for i in range(len(pairs))))<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">402<\/span><span class=\"t\">        solver, status = _solve_stage(model, SOLVE_STAGES[2])<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">403<\/span><span class=\"t\">        solve_log.append({&quot;stage&quot;: SOLVE_STAGES[2], &quot;status&quot;: status})<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">404<\/span><span class=\"t\">        chosen_idx = [i for i in range(len(pairs)) if solver.value(x[i]) == 1]<\/span><\/span>\n<\/code><\/pre><\/figure>", "text": "        # Solve 1: maximise saved.\n        model, x, saved, cost = build_model()\n        model.maximize(saved)\n        solver, status = _solve_stage(model, SOLVE_STAGES[0])\n        solve_log.append({\"stage\": SOLVE_STAGES[0], \"status\": status})\n        best_saved = int(solver.objective_value)\n        # Solve 2: minimise cost at best_saved.\n        model, x, saved, cost = build_model(saved_target=best_saved)\n        model.minimize(cost)\n        solver, status = _solve_stage(model, SOLVE_STAGES[1])\n        solve_log.append({\"stage\": SOLVE_STAGES[1], \"status\": status})\n        best_cost = int(round(solver.objective_value))\n        # Solve 3: minimise rank sum at (best_saved, best_cost), total order.\n        model, x, saved, cost = build_model(saved_target=best_saved, cost_target=best_cost)\n        model.minimize(sum(i * x[i] for i in range(len(pairs))))\n        solver, status = _solve_stage(model, SOLVE_STAGES[2])\n        solve_log.append({\"stage\": SOLVE_STAGES[2], \"status\": status})\n        chosen_idx = [i for i in range(len(pairs)) if solver.value(x[i]) == 1]"}, "price": {"html": "<figure class=\"code\"><figcaption class=\"code-head\"><span class=\"p\">twin/ev_gate.py<\/span><span class=\"r\">lines 324 to 341<\/span><button class=\"copy\" type=\"button\" data-copy=\"price\">copy<\/button><\/figcaption><pre><code><span class=\"cl\"><span class=\"n\">324<\/span><span class=\"t\">def gate_for_option(world: dict, conn: dict, option: dict, base_margin: float,<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">325<\/span><span class=\"t\">                    pool: dict | None = None, seed: int | None = None) -&gt; dict[str, Any]:<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">326<\/span><span class=\"t\">    &quot;&quot;&quot;The three numbers and the verdict for one option.&quot;&quot;&quot;<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">327<\/span><span class=\"t\">    cls = option[&quot;action_class&quot;]<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">328<\/span><span class=\"t\">    if cls in _READY_SIDE_CLASSES:<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">329<\/span><span class=\"t\">        probs = roll_probabilities(world, conn, gain_minutes=float(option[&quot;margin_gained_minutes&quot;]),<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">330<\/span><span class=\"t\">                                   pool=pool, seed=seed)<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">331<\/span><span class=\"t\">    elif cls in _CUTOFF_SIDE_CLASSES:<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">332<\/span><span class=\"t\">        shift = float(option[&quot;margin_after_minutes&quot;]) - float(base_margin)<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">333<\/span><span class=\"t\">        probs = roll_probabilities(world, conn, cut_off_after=add_minutes(conn[&quot;cut_off&quot;], shift),<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">334<\/span><span class=\"t\">                                   pool=pool, seed=seed)<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">335<\/span><span class=\"t\">    else:<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">336<\/span><span class=\"t\">        probs = roll_probabilities(world, conn, pool=pool, seed=seed)<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">337<\/span><span class=\"t\">    values = value_per_rollover_usd()<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">338<\/span><span class=\"t\">    value = values[&quot;base&quot;]<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">339<\/span><span class=\"t\">    cost = float(option[&quot;cost_usd_est&quot;])<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">340<\/span><span class=\"t\">    expected = round(probs[&quot;p_roll_avoided&quot;] * value, 2)<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">341<\/span><span class=\"t\">    passes = expected &gt;= cost<\/span><\/span>\n<\/code><\/pre><\/figure>", "text": "def gate_for_option(world: dict, conn: dict, option: dict, base_margin: float,\n                    pool: dict | None = None, seed: int | None = None) -> dict[str, Any]:\n    \"\"\"The three numbers and the verdict for one option.\"\"\"\n    cls = option[\"action_class\"]\n    if cls in _READY_SIDE_CLASSES:\n        probs = roll_probabilities(world, conn, gain_minutes=float(option[\"margin_gained_minutes\"]),\n                                   pool=pool, seed=seed)\n    elif cls in _CUTOFF_SIDE_CLASSES:\n        shift = float(option[\"margin_after_minutes\"]) - float(base_margin)\n        probs = roll_probabilities(world, conn, cut_off_after=add_minutes(conn[\"cut_off\"], shift),\n                                   pool=pool, seed=seed)\n    else:\n        probs = roll_probabilities(world, conn, pool=pool, seed=seed)\n    values = value_per_rollover_usd()\n    value = values[\"base\"]\n    cost = float(option[\"cost_usd_est\"])\n    expected = round(probs[\"p_roll_avoided\"] * value, 2)\n    passes = expected >= cost"}, "approve": {"html": "<figure class=\"code\"><figcaption class=\"code-head\"><span class=\"p\">agentcore/whatif.py<\/span><span class=\"r\">lines 324 to 341<\/span><button class=\"copy\" type=\"button\" data-copy=\"approve\">copy<\/button><\/figcaption><pre><code><span class=\"cl\"><span class=\"n\">324<\/span><span class=\"t\">    policy = resolved[&quot;policy&quot;]<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">325<\/span><span class=\"t\">    _trace(state, &quot;policy_gate&quot;, &quot;rule&quot;,<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">326<\/span><span class=\"t\">           f&quot;policy.lookup({resolved[&#x27;tool&#x27;]}, {resolved[&#x27;args&#x27;]}) RE-RUN on the edited &quot;<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">327<\/span><span class=\"t\">           f&quot;action class -&gt; row {policy[&#x27;row&#x27;]} tier={policy[&#x27;tier&#x27;]} &quot;<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">328<\/span><span class=\"t\">           f&quot;risk={policy[&#x27;risk_level&#x27;]} auto_deny={policy[&#x27;auto_deny&#x27;]} &quot;<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">329<\/span><span class=\"t\">           &quot;(table lookup only, rules decide, never the model)&quot;,<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">330<\/span><span class=\"t\">           {&quot;tool&quot;: resolved[&quot;tool&quot;], &quot;args&quot;: resolved[&quot;args&quot;]}, policy, tier=&quot;rules&quot;,<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">331<\/span><span class=\"t\">           label=&quot;DENY_BY_DEFAULT&quot; if policy[&quot;auto_deny&quot;] else None)<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">332<\/span><span class=\"t\">&nbsp;<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">333<\/span><span class=\"t\">    if policy[&quot;auto_deny&quot;]:<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">334<\/span><span class=\"t\">        return _refuse(state, out, card, decided_by,<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">335<\/span><span class=\"t\">                       f&quot;policy row 10: edited action class &#x27;{resolved[&#x27;action_class&#x27;]}&#x27; &quot;<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">336<\/span><span class=\"t\">                       &quot;has no established approval policy (AUTO-DENY)&quot;)<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">337<\/span><span class=\"t\">    if policy[&quot;requires_justification&quot;] and not resume.get(&quot;justification&quot;):<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">338<\/span><span class=\"t\">        return _refuse(state, out, card, decided_by,<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">339<\/span><span class=\"t\">                       f&quot;policy row {policy[&#x27;row&#x27;]} requires a WRITTEN justification &quot;<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">340<\/span><span class=\"t\">                       &quot;for this action class (MGF high-risk rule) and none was given&quot;)<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">341<\/span><span class=\"t\">    if not resolved[&quot;agree&quot;]:<\/span><\/span>\n<\/code><\/pre><\/figure>", "text": "    policy = resolved[\"policy\"]\n    _trace(state, \"policy_gate\", \"rule\",\n           f\"policy.lookup({resolved['tool']}, {resolved['args']}) RE-RUN on the edited \"\n           f\"action class -> row {policy['row']} tier={policy['tier']} \"\n           f\"risk={policy['risk_level']} auto_deny={policy['auto_deny']} \"\n           \"(table lookup only, rules decide, never the model)\",\n           {\"tool\": resolved[\"tool\"], \"args\": resolved[\"args\"]}, policy, tier=\"rules\",\n           label=\"DENY_BY_DEFAULT\" if policy[\"auto_deny\"] else None)\n\n    if policy[\"auto_deny\"]:\n        return _refuse(state, out, card, decided_by,\n                       f\"policy row 10: edited action class '{resolved['action_class']}' \"\n                       \"has no established approval policy (AUTO-DENY)\")\n    if policy[\"requires_justification\"] and not resume.get(\"justification\"):\n        return _refuse(state, out, card, decided_by,\n                       f\"policy row {policy['row']} requires a WRITTEN justification \"\n                       \"for this action class (MGF high-risk rule) and none was given\")\n    if not resolved[\"agree\"]:"}, "execute": {"html": "<figure class=\"code\"><figcaption class=\"code-head\"><span class=\"p\">agentcore/graph.py<\/span><span class=\"r\">lines 1075 to 1088<\/span><button class=\"copy\" type=\"button\" data-copy=\"execute\">copy<\/button><\/figcaption><pre><code><span class=\"cl\"><span class=\"n\">1075<\/span><span class=\"t\">    action = state[&quot;selected_action&quot;]<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">1076<\/span><span class=\"t\">    # T1 path carries a server-minted token; a T2 repeat without one is<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">1077<\/span><span class=\"t\">    # refused SERVER-SIDE by the write gate (enforcement point, not here).<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">1078<\/span><span class=\"t\">    token = (state.get(&quot;approval_decision&quot;) or {}).get(&quot;approval_token&quot;)<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">1079<\/span><span class=\"t\">    credential = f&quot;relay-agent/executor@{state[&#x27;run_id&#x27;]}&quot;<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">1080<\/span><span class=\"t\">    gate_kwargs = {<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">1081<\/span><span class=\"t\">        &quot;approval_token&quot;: token,<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">1082<\/span><span class=\"t\">        &quot;agent_credential_id&quot;: credential,<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">1083<\/span><span class=\"t\">        &quot;idempotency_key&quot;: f&quot;idem-{state[&#x27;correlation_id&#x27;]}-{state[&#x27;selected_option_id&#x27;]}&quot;,<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">1084<\/span><span class=\"t\">    }<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">1085<\/span><span class=\"t\">    args = action[&quot;args&quot;]<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">1086<\/span><span class=\"t\">    if action[&quot;tool&quot;] == &quot;portnet.set_transfer_priority&quot;:<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">1087<\/span><span class=\"t\">        call = lambda: portnet_stub.set_transfer_priority(  # noqa: E731<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">1088<\/span><span class=\"t\">            args[&quot;box_group_id&quot;], args[&quot;priority&quot;], **gate_kwargs)<\/span><\/span>\n<\/code><\/pre><\/figure>", "text": "    action = state[\"selected_action\"]\n    # T1 path carries a server-minted token; a T2 repeat without one is\n    # refused SERVER-SIDE by the write gate (enforcement point, not here).\n    token = (state.get(\"approval_decision\") or {}).get(\"approval_token\")\n    credential = f\"relay-agent/executor@{state['run_id']}\"\n    gate_kwargs = {\n        \"approval_token\": token,\n        \"agent_credential_id\": credential,\n        \"idempotency_key\": f\"idem-{state['correlation_id']}-{state['selected_option_id']}\",\n    }\n    args = action[\"args\"]\n    if action[\"tool\"] == \"portnet.set_transfer_priority\":\n        call = lambda: portnet_stub.set_transfer_priority(  # noqa: E731\n            args[\"box_group_id\"], args[\"priority\"], **gate_kwargs)"}, "policy": {"html": "<figure class=\"code\"><figcaption class=\"code-head\"><span class=\"p\">stubs/policy_stub.py<\/span><span class=\"r\">lines 131 to 152<\/span><button class=\"copy\" type=\"button\" data-copy=\"policy\">copy<\/button><\/figcaption><pre><code><span class=\"cl\"><span class=\"n\">131<\/span><span class=\"t\">def lookup(tool: str, args: dict | None = None) -&gt; dict:<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">132<\/span><span class=\"t\">    &quot;&quot;&quot;policy.lookup: deterministic tier + risk + rate row for one action.<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">133<\/span><span class=\"t\">&nbsp;<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">134<\/span><span class=\"t\">    Never an error: an unknown tool/action class returns the row-10<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">135<\/span><span class=\"t\">    AUTO-DENY entry (auto_deny=True), the caller must deny and escalate.<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">136<\/span><span class=\"t\">    &quot;&quot;&quot;<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">137<\/span><span class=\"t\">    args = args or {}<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">138<\/span><span class=\"t\">    for row in POLICY_TABLE:<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">139<\/span><span class=\"t\">        if tool not in row[&quot;tools&quot;]:<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">140<\/span><span class=\"t\">            continue<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">141<\/span><span class=\"t\">        pred = row.get(&quot;arg_predicate&quot;)<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">142<\/span><span class=\"t\">        if pred is not None:<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">143<\/span><span class=\"t\">            field, allowed = pred<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">144<\/span><span class=\"t\">            if args.get(field) not in allowed:<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">145<\/span><span class=\"t\">                continue<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">146<\/span><span class=\"t\">        out = {k: v for k, v in row.items() if k not in (&quot;tools&quot;, &quot;arg_predicate&quot;)}<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">147<\/span><span class=\"t\">        out[&quot;tool&quot;] = tool<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">148<\/span><span class=\"t\">        out[&quot;auto_deny&quot;] = False<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">149<\/span><span class=\"t\">        return out<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">150<\/span><span class=\"t\">    out = dict(AUTO_DENY_ROW)<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">151<\/span><span class=\"t\">    out[&quot;tool&quot;] = tool<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">152<\/span><span class=\"t\">    return out<\/span><\/span>\n<\/code><\/pre><\/figure>", "text": "def lookup(tool: str, args: dict | None = None) -> dict:\n    \"\"\"policy.lookup: deterministic tier + risk + rate row for one action.\n\n    Never an error: an unknown tool/action class returns the row-10\n    AUTO-DENY entry (auto_deny=True), the caller must deny and escalate.\n    \"\"\"\n    args = args or {}\n    for row in POLICY_TABLE:\n        if tool not in row[\"tools\"]:\n            continue\n        pred = row.get(\"arg_predicate\")\n        if pred is not None:\n            field, allowed = pred\n            if args.get(field) not in allowed:\n                continue\n        out = {k: v for k, v in row.items() if k not in (\"tools\", \"arg_predicate\")}\n        out[\"tool\"] = tool\n        out[\"auto_deny\"] = False\n        return out\n    out = dict(AUTO_DENY_ROW)\n    out[\"tool\"] = tool\n    return out"}, "write": {"html": "<figure class=\"code\"><figcaption class=\"code-head\"><span class=\"p\">stubs/portnet_stub.py<\/span><span class=\"r\">lines 57 to 79<\/span><button class=\"copy\" type=\"button\" data-copy=\"write\">copy<\/button><\/figcaption><pre><code><span class=\"cl\"><span class=\"n\">57<\/span><span class=\"t\">def _gate_write(tool: str, action_args: dict, approval_token, agent_credential_id,<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">58<\/span><span class=\"t\">                idempotency_key) -&gt; dict | None:<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">59<\/span><span class=\"t\">    &quot;&quot;&quot;Shared write gate. Returns an error dict, or None when the gate passes.<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">60<\/span><span class=\"t\">&nbsp;<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">61<\/span><span class=\"t\">    Order (CONTRACT §b2): (0) args sanity -&gt; (1) degraded-mode denial,<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">62<\/span><span class=\"t\">    SERVER-SIDE -&gt; (2) credential scope (CSA 2.6) -&gt; (3) approval token<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">63<\/span><span class=\"t\">    verified AGAINST THE APPROVAL SERVER (issuance + binding to<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">64<\/span><span class=\"t\">    tool+args_digest + expiry). The gate runs BEFORE the fault layer, so an<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">65<\/span><span class=\"t\">    injected GUARDRAIL_BYPASS can never skip it.<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">66<\/span><span class=\"t\">    &quot;&quot;&quot;<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">67<\/span><span class=\"t\">    if not idempotency_key or not isinstance(idempotency_key, str):<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">68<\/span><span class=\"t\">        return make_error(&quot;INVALID_ARGS&quot;, &quot;idempotency_key must be a non-empty string&quot;)<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">69<\/span><span class=\"t\">    degrading = degraded_mode_active()<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">70<\/span><span class=\"t\">    if degrading is not None:<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">71<\/span><span class=\"t\">        return make_error(<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">72<\/span><span class=\"t\">            &quot;DEGRADED_MODE&quot;,<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">73<\/span><span class=\"t\">            &quot;write refused: system is DEGRADED_TO_ADVISORY &quot;<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">74<\/span><span class=\"t\">            f&quot;({degrading[&#x27;fault_type&#x27;]} on {degrading[&#x27;target_tool&#x27;]}); ALL writes are denied &quot;<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">75<\/span><span class=\"t\">            &quot;while degraded, regardless of tier or approval (CONTRACT §c)&quot;,<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">76<\/span><span class=\"t\">            context={&quot;fault_id&quot;: degrading[&quot;fault_id&quot;], &quot;target_tool&quot;: degrading[&quot;target_tool&quot;]},<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">77<\/span><span class=\"t\">        )<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">78<\/span><span class=\"t\">    if not approval_token:<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">79<\/span><span class=\"t\">        return make_error(<\/span><\/span>\n<\/code><\/pre><\/figure>", "text": "def _gate_write(tool: str, action_args: dict, approval_token, agent_credential_id,\n                idempotency_key) -> dict | None:\n    \"\"\"Shared write gate. Returns an error dict, or None when the gate passes.\n\n    Order (CONTRACT §b2): (0) args sanity -> (1) degraded-mode denial,\n    SERVER-SIDE -> (2) credential scope (CSA 2.6) -> (3) approval token\n    verified AGAINST THE APPROVAL SERVER (issuance + binding to\n    tool+args_digest + expiry). The gate runs BEFORE the fault layer, so an\n    injected GUARDRAIL_BYPASS can never skip it.\n    \"\"\"\n    if not idempotency_key or not isinstance(idempotency_key, str):\n        return make_error(\"INVALID_ARGS\", \"idempotency_key must be a non-empty string\")\n    degrading = degraded_mode_active()\n    if degrading is not None:\n        return make_error(\n            \"DEGRADED_MODE\",\n            \"write refused: system is DEGRADED_TO_ADVISORY \"\n            f\"({degrading['fault_type']} on {degrading['target_tool']}); ALL writes are denied \"\n            \"while degraded, regardless of tier or approval (CONTRACT §c)\",\n            context={\"fault_id\": degrading[\"fault_id\"], \"target_tool\": degrading[\"target_tool\"]},\n        )\n    if not approval_token:\n        return make_error("}, "ledger": {"html": "<figure class=\"code\"><figcaption class=\"code-head\"><span class=\"p\">stubs/ledger_stub.py<\/span><span class=\"r\">lines 189 to 200<\/span><button class=\"copy\" type=\"button\" data-copy=\"ledger\">copy<\/button><\/figcaption><pre><code><span class=\"cl\"><span class=\"n\">189<\/span><span class=\"t\">def _append_locked(path: str, event: dict) -&gt; dict:<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">190<\/span><span class=\"t\">    &quot;&quot;&quot;The critical section of append(). Caller holds both append locks.&quot;&quot;&quot;<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">191<\/span><span class=\"t\">    count, prev = _tip(path)<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">192<\/span><span class=\"t\">    sealed = dict(event)<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">193<\/span><span class=\"t\">    sealed[&quot;event_id&quot;] = f&quot;TRC-{count + 1:06d}&quot;<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">194<\/span><span class=\"t\">    sealed[&quot;prev_hash&quot;] = prev<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">195<\/span><span class=\"t\">    sealed[&quot;this_hash&quot;] = chain_hash(sealed)<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">196<\/span><span class=\"t\">    with open(path, &quot;a&quot;, encoding=&quot;utf-8&quot;) as fh:<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">197<\/span><span class=\"t\">        fh.write(json.dumps(sealed, sort_keys=True) + &quot;\\n&quot;)<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">198<\/span><span class=\"t\">    _remember_tip(path, count + 1, sealed[&quot;this_hash&quot;])<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">199<\/span><span class=\"t\">    _write_anchor(path, count + 1, sealed[&quot;this_hash&quot;])<\/span><\/span>\n<span class=\"cl\"><span class=\"n\">200<\/span><span class=\"t\">    return sealed<\/span><\/span>\n<\/code><\/pre><\/figure>", "text": "def _append_locked(path: str, event: dict) -> dict:\n    \"\"\"The critical section of append(). Caller holds both append locks.\"\"\"\n    count, prev = _tip(path)\n    sealed = dict(event)\n    sealed[\"event_id\"] = f\"TRC-{count + 1:06d}\"\n    sealed[\"prev_hash\"] = prev\n    sealed[\"this_hash\"] = chain_hash(sealed)\n    with open(path, \"a\", encoding=\"utf-8\") as fh:\n        fh.write(json.dumps(sealed, sort_keys=True) + \"\\n\")\n    _remember_tip(path, count + 1, sealed[\"this_hash\"])\n    _write_anchor(path, count + 1, sealed[\"this_hash\"])\n    return sealed"}}</script>
+<script id="chainSrc" type="application/json">{"prev_in": "7a6f41d1e5bf5d96e58bc7bb88f0ad603bf462e66bd6978d12066dbf84ce1390", "events": [{"id": "TRC-000009", "type": "policy_gate", "action": "policy.lookup: portnet.set_transfer_priority(EXPEDITE) -> row 3, T1 (first-use in shift), risk MEDIUM, rate 5/shift", "clean": "e5b166ede76d025e617ee620829674c4d8b206d54b386c50233e994c6b0824e6", "tampered": "e5b166ede76d025e617ee620829674c4d8b206d54b386c50233e994c6b0824e6"}, {"id": "TRC-000010", "type": "approval_requested", "action": "approval.request_card CARD-2026-0825-0001 (deny_after_s=120)", "clean": "949645746d8c814a6a065786b564e0e16cdca6feb433675d71260083d2b8ad1c", "tampered": "949645746d8c814a6a065786b564e0e16cdca6feb433675d71260083d2b8ad1c"}, {"id": "TRC-000011", "type": "approval_granted", "action": "approval.decide(CARD-2026-0825-0001, APPROVED), token minted server-side, bound to tool+args_digest+expiry; response time 64 s", "clean": "f0c0629c9fd21da3f7a413070b18510d054d6583a48aa3260e1d7cbcf76a2faa", "tampered": "60d3b6a97f434f96eec72fb38358ce698fe89ac93ea51a27b8d5f2fe2d932003"}, {"id": "TRC-000012", "type": "human_note", "action": "note on CARD-2026-0825-0001: 'expedite ok; watch Y12 density, hold CRITICAL in reserve'", "clean": "fe0c84c8f68bdef627583b39c35c3df048b440c199daf6abe733fd8c592c3dec", "tampered": "451d5b36d65c2d469085b2c523a425f0fe3bbd8550775e5f2df573992494fee9"}, {"id": "TRC-000013", "type": "action_executed", "action": "portnet.set_transfer_priority(BG-0002, EXPEDITE) [idempotency_key=demo-tp-1]", "clean": "4bafe93b31defaaf9bb39185439a3d82625fc177264d499290b611ea5d11ffef", "tampered": "f089959e286957bfbd85c8a3cc2a4414af054b0edbe61b9f7ecc0cb66b8100cd"}], "edit": {"index": 2, "from": "APPROVED", "to": "APPROVEE"}}</script>
+<script id="nodeSrc" type="application/json">{"ingest": {"title": "Ingest and classify", "node": "ingest_events, classify", "owner": "rule-c", "code": "ingest", "what": "The pack's structured events enter the twin one at a time, and the classifier counts them by type. If the pack carries a carrier advisory the run routes to fusion, and if it does not, the language model is never called at all.", "contract": "CONTRACT section a: six DCSA-shaped structured event types beside one unstructured channel. Routing is a rule and it runs on the rules tier, so the model has no path to the route it takes."}, "fuse": {"title": "Read the advisory", "node": "fuse_advisory", "owner": "model", "code": "fuse", "what": "The one job the language model owns. It parses the free-text advisory into a schema-validated fact over a seeded sample panel that votes field by field, and every key it emits is checked against a frozen allow-list before anything downstream sees it.", "contract": "CONTRACT section e: the model turns messy evidence into validated structured facts and explanations. The schema carries no instruction-bearing field, so free text cannot name a tool, a tier or a policy row, and every output carries the taint label UNTRUSTED_FREETEXT."}, "gate": {"title": "Check completeness", "node": "fusion_gate", "owner": "rule-c", "code": "gate", "what": "A rule reads the completeness score the fusion step produced and compares it against a fixed threshold. Below the threshold the episode escalates to a person rather than ingesting a fact it cannot stand behind.", "contract": "CONTRACT section h: FUSION_COMPLETENESS_THRESHOLD is 0.60. The hero advisory scores 0.87 and passes (deck slide 5). The gate also consults the shift memory of the source, which can add a person and can never remove one."}, "margin": {"title": "Compute the margin", "node": "assess_feasibility", "owner": "twin", "code": "margin", "what": "The twin computes the minutes between the moment a box group can be ready and its cut-off, at the ninetieth percentile of the transfer distribution. The verdict is arithmetic rather than an opinion, so feasible means feasible on a bad day.", "contract": "CONTRACT section b1.2: a margin at or below zero is INFEASIBLE, at or below 60 minutes is AT_RISK, above that FEASIBLE. Below the completeness floor the margin stays null and the verdict escalates rather than guessing. CN-0002 reads 41 minutes (deck slide 5)."}, "solve": {"title": "Allocate the budget", "node": "twin.replan_terminal", "owner": "twin", "code": "solve", "what": "When more than one connection in episode scope is at risk they compete for one shift budget, so OR-Tools CP-SAT allocates one action to each in a single solve. Three pinned solves give a lexicographic order: most connections saved, then least cost, then a deterministic rank sum, so the plan is byte-identical across runs.", "contract": "CONTRACT section c rate limits are the hard constraints. Across 61 instances and 567 broken connections the joint solver saves 423 against a greedy comparator's 408, is never worse, and every plan is proved optimal (twin/solver_quality.json, deck slide 5)."}, "price": {"title": "Price every option", "node": "twin/ev_gate.py", "owner": "rule-c", "code": "price", "what": "Before an action can become a card it is priced inside the twin's own replication distribution: the change in rollover probability times what a rollover avoided is worth, against what the action costs. An option that does not clear its own cost is carried as advice with those three numbers attached and leaves the solver's candidate set.", "contract": "CONTRACT section c row 12: an action whose expected value is below its cost is ADVISE_ONLY and never T1. Over the same 500 scenarios the gate takes expedites from 173 to 29 and spend per rollover avoided from 60,835 US dollars to 19,745 (deck slide 6)."}, "approve": {"title": "Ask the duty officer", "node": "request_approval, agentcore/whatif.py", "owner": "human", "code": "approve", "what": "The graph interrupts and the approval server raises a card carrying a single-use token bound to this tool and these arguments, with a 120 second clock. If the officer edits the plan the policy row is re-derived from the edited arguments and the token is re-minted, so an expedite raised to CRITICAL moves from row 3 to row 4 and a written justification becomes mandatory.", "contract": "CONTRACT section c: an unanswered T1 card is denied after APPROVAL_DENY_AFTER_S of 120 seconds with a written escalation summary to the duty supervisor. An edit cannot widen the agent's authority, because the row is looked up again on what the officer actually asked for."}, "execute": {"title": "Execute and verify", "node": "execute_actions, verify_effect", "owner": "write", "code": "execute", "what": "The executor presents the server-minted token, its own scoped credential and an idempotency key to the write tool, and never constructs a token itself. An action the officer refused is never attempted. The twin then re-runs feasibility and records what actually changed, which for a rebooking is nothing until the carrier answers.", "contract": "CONTRACT section b2: the write gate is server-side and runs before the fault layer. The approval server is the sole issuer of tokens, and the executor credential is the only one that may present one to a write tool."}}</script>
+
+<script>
+(function(){
+"use strict";
+
+var mq = matchMedia("(prefers-reduced-motion: reduce)");
+var reduce = mq.matches;
+if(mq.addEventListener) mq.addEventListener("change", function(e){ reduce = e.matches; });
+
+function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+function ease(t){ return t<0?0:(t>1?1:1-Math.pow(1-t,3)); }
+function json(id){ var el=document.getElementById(id); try{ return JSON.parse(el.textContent); }catch(e){ return null; } }
+
+/* ---------------- reveal on entry, staggered between siblings ---------------- */
+(function(){
+  var els = [].slice.call(document.querySelectorAll(".rv"));
+  if(reduce || !window.IntersectionObserver){
+    els.forEach(function(e){ e.classList.add("in"); });
+    return;
+  }
+  var seen = new WeakMap();
+  function reveal(el){
+    var parent = el.parentNode;
+    var k = seen.get(parent) || 0;
+    seen.set(parent, k + 1);
+    el.style.transitionDelay = (Math.min(k, 5) * 0.07).toFixed(2) + "s";
+    el.classList.add("in");
+    io.unobserve(el);
+  }
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){ if(en.isIntersecting) reveal(en.target); });
+  }, { rootMargin: "0px 0px -8% 0px", threshold: 0.05 });
+  els.forEach(function(e){ io.observe(e); });
+
+  /* Safety net. Nothing on this page may stay invisible because a callback did not
+     arrive: a deep link that jumps mid-document, or a fast scroll that coalesces the
+     observer's notifications, both leave blocks behind. This sweep reveals anything
+     that has reached the viewport whether the observer reported it or not. */
+  function sweep(){
+    for(var i = els.length - 1; i >= 0; i--){
+      var el = els[i];
+      if(el.classList.contains("in")){ els.splice(i, 1); continue; }
+      var r = el.getBoundingClientRect();
+      if(r.top < window.innerHeight * 0.94){ reveal(el); els.splice(i, 1); }
+    }
+  }
+  window.addEventListener("scroll", sweep, { passive: true });
+  window.addEventListener("resize", sweep, { passive: true });
+  window.addEventListener("load", sweep);
+  setTimeout(sweep, 500);
+})();
+
+/* ---------------- hero headline, word by word ---------------- */
+(function(){
+  var h1 = document.querySelector("#hero h1");
+  if(!h1) return;
+  var words = h1.textContent.trim().split(/\s+/);
+  h1.textContent = "";
+  words.forEach(function(w,i){
+    var s = document.createElement("span");
+    s.className = "w"; s.textContent = w;
+    s.style.transitionDelay = (0.10 + i * 0.09).toFixed(2) + "s";
+    h1.appendChild(s);
+    if(i < words.length - 1) h1.appendChild(document.createTextNode(" "));
+  });
+  requestAnimationFrame(function(){ requestAnimationFrame(function(){
+    h1.querySelectorAll(".w").forEach(function(s){ s.classList.add("in"); });
+  }); });
+})();
+
+/* ---------------- hero countdown, 60 down to 41, then it holds ---------------- */
+(function(){
+  var el = document.getElementById("countdown");
+  if(!el) return;
+  var from = 60, to = 41;
+  function paint(v){ el.innerHTML = String(v) + '<i>min</i>'; }
+  if(reduce){ paint(to); return; }
+  var t0 = null;
+  function step(ts){
+    if(t0 === null) t0 = ts;
+    var k = clamp((ts - t0) / 1500, 0, 1);
+    paint(Math.round(from + (to - from) * ease(k)));
+    if(k < 1) requestAnimationFrame(step);
+  }
+  setTimeout(function(){ requestAnimationFrame(step); }, 700);
+})();
+
+/* ---------------- hero canvas: slow-drifting dots on the ground colour ---------------- */
+(function(){
+  var c = document.getElementById("field");
+  if(!c) return;
+  var ctx = c.getContext("2d"), dots = [], w = 0, h = 0, dpr = 1, raf = null, on = false;
+
+  function seedRandom(s){
+    return function(){ s |= 0; s = s + 0x6D2B79F5 | 0;
+      var t = Math.imul(s ^ s >>> 15, 1 | s);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  }
+  function size(){
+    var r = c.getBoundingClientRect();
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    w = Math.max(1, Math.round(r.width)); h = Math.max(1, Math.round(r.height));
+    c.width = Math.round(w * dpr); c.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    build();
+  }
+  function build(){
+    var rnd = seedRandom(41), n = Math.round(clamp(w * h / 12000, 40, 190));
+    dots = [];
+    for(var i = 0; i < n; i++){
+      dots.push({ x: rnd() * w, y: rnd() * h, r: 0.6 + rnd() * 1.5,
+                  vx: (rnd() - 0.5) * 0.10, vy: -0.04 - rnd() * 0.10,
+                  a: 0.10 + rnd() * 0.30, amber: rnd() > 0.90 });
+    }
+  }
+  function paint(move){
+    ctx.clearRect(0, 0, w, h);
+    for(var i = 0; i < dots.length; i++){
+      var d = dots[i];
+      if(move){
+        d.x += d.vx; d.y += d.vy;
+        if(d.y < -6) { d.y = h + 6; d.x = Math.random() * w; }
+        if(d.x < -6) d.x = w + 6; else if(d.x > w + 6) d.x = -6;
+      }
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+      ctx.fillStyle = d.amber ? "rgba(245,185,66," + (d.a * 0.85).toFixed(3) + ")"
+                              : "rgba(128,144,160," + d.a.toFixed(3) + ")";
+      ctx.fill();
+    }
+  }
+  function loop(){ paint(true); raf = requestAnimationFrame(loop); }
+  function start(){ if(raf || reduce) return; raf = requestAnimationFrame(loop); }
+  function stop(){ if(raf){ cancelAnimationFrame(raf); raf = null; } }
+
+  size();
+  paint(false);
+  var io = new IntersectionObserver(function(es){
+    on = es[0].isIntersecting;
+    if(on && !reduce) start(); else stop();
+  }, { threshold: 0 });
+  io.observe(c);
+
+  var rz = null;
+  window.addEventListener("resize", function(){
+    if(rz) clearTimeout(rz);
+    rz = setTimeout(function(){ size(); paint(false); if(on && !reduce) start(); }, 140);
+  }, { passive: true });
+})();
+
+/* ---------------- counters, once, when the figure enters ---------------- */
+(function(){
+  var nodes = [].slice.call(document.querySelectorAll("[data-count]"));
+  if(reduce || !window.IntersectionObserver) return;
+  function run(el){
+    var target = parseFloat(el.getAttribute("data-count"));
+    var fin = el.textContent;
+    if(!isFinite(target)) return;
+    var suffix = fin.replace(/^[\d,]+/, "");
+    var t0 = null;
+    function step(ts){
+      if(t0 === null) t0 = ts;
+      var k = clamp((ts - t0) / 1100, 0, 1);
+      el.textContent = Math.round(target * ease(k)).toLocaleString("en-US") + suffix;
+      if(k < 1) requestAnimationFrame(step); else el.textContent = fin;
+    }
+    requestAnimationFrame(step);
+  }
+  var io = new IntersectionObserver(function(es){
+    es.forEach(function(en){
+      if(!en.isIntersecting) return;
+      io.unobserve(en.target);
+      run(en.target);
+    });
+  }, { threshold: 0.45 });
+  nodes.forEach(function(el){
+    var r = el.getBoundingClientRect();
+    if(r.top < window.innerHeight){ return; }   /* already read: leave the value alone */
+    io.observe(el);
+  });
+})();
+
+/* ---------------- the two-lane figure plays when it enters ---------------- */
+(function(){
+  var el = document.getElementById("lanes");
+  if(!el) return;
+  var io = new IntersectionObserver(function(es){
+    if(es[0].isIntersecting){ el.classList.add("play"); io.disconnect(); }
+  }, { threshold: 0.2 });
+  io.observe(el);
+})();
+
+/* ---------------- scroll rail, ticks, top bar, scrollspy ---------------- */
+(function(){
+  var rail = document.getElementById("rail");
+  var fill = rail ? rail.querySelector(".fill") : null;
+  var bar = document.getElementById("bar");
+  var secs = [].slice.call(document.querySelectorAll("main section"));
+  var links = [].slice.call(document.querySelectorAll("#bar nav a"));
+  var ticks = [];
+
+  function layout(){
+    ticks.forEach(function(t){ t.remove(); });
+    ticks = [];
+    var doc = document.documentElement.scrollHeight;
+    secs.forEach(function(s){
+      var t = document.createElement("span");
+      t.className = "tick";
+      t.style.top = ((s.offsetTop / doc) * 100).toFixed(2) + "%";
+      t.dataset.sec = s.id;
+      rail.appendChild(t);
+      ticks.push(t);
+    });
+  }
+  function onScroll(){
+    var h = document.documentElement.scrollHeight - window.innerHeight;
+    var p = h > 0 ? window.scrollY / h : 0;
+    if(fill) fill.style.height = (p * 100).toFixed(2) + "%";
+    if(bar) bar.classList.toggle("on", window.scrollY > window.innerHeight * 0.72);
+  }
+  if(rail){ layout(); }
+  window.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("resize", function(){ if(rail) layout(); onScroll(); }, { passive: true });
+  onScroll();
+
+  var map = {};
+  links.forEach(function(a){ map[a.dataset.sec] = a; });
+  var spy = new IntersectionObserver(function(es){
+    es.forEach(function(en){
+      if(!en.isIntersecting) return;
+      links.forEach(function(a){ a.classList.remove("active"); });
+      ticks.forEach(function(t){ t.classList.remove("on"); });
+      var a = map[en.target.id]; if(a) a.classList.add("active");
+      ticks.forEach(function(t){ if(t.dataset.sec === en.target.id) t.classList.add("on"); });
+    });
+  }, { rootMargin: "-45% 0px -50% 0px" });
+  secs.forEach(function(s){ spy.observe(s); });
+})();
+
+/* ---------------- copy buttons, no library ---------------- */
+var CODE = json("codeSrc") || {};
+function copyText(text, btn){
+  function done(){
+    var was = btn.textContent;
+    btn.textContent = "copied"; btn.classList.add("done");
+    setTimeout(function(){ btn.textContent = was; btn.classList.remove("done"); }, 1600);
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done, function(){ fallback(text, done); });
+  } else { fallback(text, done); }
+}
+function fallback(text, done){
+  var ta = document.createElement("textarea");
+  ta.value = text;
+  ta.setAttribute("readonly", "");
+  ta.style.position = "fixed"; ta.style.top = "-1000px"; ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  try{ document.execCommand("copy"); done(); }catch(e){}
+  document.body.removeChild(ta);
+}
+document.addEventListener("click", function(e){
+  var btn = e.target.closest ? e.target.closest(".copy") : null;
+  if(!btn) return;
+  var key = btn.getAttribute("data-copy");
+  if(CODE[key]) copyText(CODE[key].text, btn);
+});
+
+/* ---------------- architecture: click to open a detail panel in place ---------------- */
+(function(){
+  var NODES = json("nodeSrc") || {};
+  var graph = document.getElementById("graph");
+  var panel = document.getElementById("detail");
+  if(!graph || !panel) return;
+  var open = null;
+
+  function esc(s){
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+  function close(){
+    if(!open) return;
+    var b = document.getElementById("n-" + open);
+    if(b) b.setAttribute("aria-expanded", "false");
+    panel.classList.remove("on");
+    panel.hidden = true;
+    panel.innerHTML = "";
+    open = null;
+  }
+  function show(key, btn){
+    var d = NODES[key];
+    if(!d) return;
+    if(open === key){ close(); return; }
+    open = key;
+    graph.querySelectorAll(".node").forEach(function(n){ n.setAttribute("aria-expanded", "false"); });
+    btn.setAttribute("aria-expanded", "true");
+    panel.hidden = false;
+    panel.style.setProperty("--own", "var(--" + d.owner + ")");
+    panel.innerHTML =
+      '<div class="detail-in" style="--own:var(--' + d.owner + ')">' +
+        '<div class="detail-top">' +
+          '<h3 id="detailTitle">' + esc(d.title) + '</h3>' +
+          '<span class="nd">' + esc(d.node) + '</span>' +
+          '<button class="detail-close" type="button" id="detailClose">Close</button>' +
+        '</div>' +
+        '<div class="detail-grid">' +
+          '<div>' +
+            '<p style="color:var(--ink-2);font-size:16.5px;line-height:1.6">' + esc(d.what) + '</p>' +
+            '<div class="contract"><span class="h">The rule that binds it</span>' +
+              '<p>' + esc(d.contract) + '</p></div>' +
+          '</div>' +
+          '<div>' + (CODE[d.code] ? CODE[d.code].html : "") + '</div>' +
+        '</div>' +
+      '</div>';
+    requestAnimationFrame(function(){ panel.classList.add("on"); });
+    var cl = document.getElementById("detailClose");
+    if(cl) cl.addEventListener("click", function(){ close(); btn.focus(); });
+  }
+
+  graph.addEventListener("click", function(e){
+    var b = e.target.closest ? e.target.closest(".node") : null;
+    if(!b) return;
+    show(b.getAttribute("data-node"), b);
+  });
+
+  /* A step can be linked directly: index.html?open=margin opens that step on load. */
+  (function(){
+    var m = /[?&]open=([a-z]+)/.exec(location.search);
+    if(!m) return;
+    var b = document.getElementById("n-" + m[1]);
+    if(!b || !NODES[m[1]]) return;
+    show(m[1], b);
+    /* wait for the panel to lay out, then bring the opened step to the top */
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){
+      var y = b.getBoundingClientRect().top + window.scrollY - 96;
+      window.scrollTo({ top: y < 0 ? 0 : y, behavior: "auto" });
+    }); });
+  })();
+  document.addEventListener("keydown", function(e){
+    if(e.key === "Escape" && open){
+      var b = document.getElementById("n-" + open);
+      close();
+      if(b) b.focus();
+    }
+  });
+})();
+
+/* ---------------- the hash chain widget ---------------- */
+(function(){
+  var data = json("chainSrc");
+  var host = document.getElementById("chain");
+  var btn = document.getElementById("tamper");
+  var state = document.getElementById("chainState");
+  if(!data || !host || !btn) return;
+  var tampered = false;
+
+  function esc(s){
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+  function shorten(s){ return s.slice(0, 16); }
+  function render(){
+    var editIx = data.edit.index, out = "";
+    data.events.forEach(function(ev, i){
+      var broken = tampered && i >= editIx;
+      var action = ev.action.length > 74 ? ev.action.slice(0, 74) + "..." : ev.action;
+      if(tampered && i === editIx){
+        action = esc(action).replace(data.edit.from, '<mark>' + data.edit.to + '</mark>');
+      } else {
+        action = esc(action);
+      }
+      out +=
+        '<div class="ev' + (broken ? " bad" : "") + (tampered && i === editIx ? " edited" : "") + '">' +
+          '<span class="id">' + esc(ev.id) + '</span>' +
+          '<div class="ty">' + esc(ev.type) + '</div>' +
+          '<p class="ac">' + action + '</p>' +
+          '<span class="hl">this_hash</span>' +
+          '<span class="h">' + shorten(tampered ? ev.tampered : ev.clean) + '</span>' +
+        '</div>';
+    });
+    host.innerHTML = out;
+    if(tampered){
+      var broke = data.events.length - editIx;
+      state.textContent = "Replay refused: this_hash mismatch from " +
+                          data.events[editIx].id + " onward, " + broke +
+                          " of " + data.events.length + " events broken";
+      state.classList.add("bad");
+      btn.textContent = "Restore the event";
+      btn.classList.add("armed");
+    } else {
+      state.textContent = "Chain verifies, 5 of 5 events";
+      state.classList.remove("bad");
+      btn.textContent = "Edit an event";
+      btn.classList.remove("armed");
+    }
+  }
+  btn.addEventListener("click", function(){ tampered = !tampered; render(); });
+  render();
+})();
+
+/* ---------------- section 5: the scrollytelling board ---------------- */
+(function(){
+  var wrapEl = document.getElementById("scrolly");
+  if(!wrapEl) return;
+  var steps = [].slice.call(document.querySelectorAll(".step"));
+  var trace = [].slice.call(document.querySelectorAll("#trace li"));
+  var v2 = document.getElementById("v2"), v1 = document.getElementById("v1");
+  var p2 = document.getElementById("p2"), p1 = document.getElementById("p1");
+  var row2 = document.getElementById("row2"), row1 = document.getElementById("row1");
+  var foot = document.getElementById("bfoot"), bstate = document.getElementById("bstate");
+  var dot = document.getElementById("bdot");
+
+  var FRAMES = [
+    { m2:41,  m1:390, s2:"at risk",  s1:"feasible", cls2:"at", note:"Board before the advisory lands. The structured feed has said nothing." },
+    { m2:41,  m1:390, s2:"at risk",  s1:"feasible", cls2:"at", note:"Advisory read, completeness <b>0.87</b> against a gate of 0.60. Nothing has been written." },
+    { m2:41,  m1:135, s2:"at risk",  s1:"feasible", cls2:"at", note:"The new arrival is in the twin. Both connections on the voyage move; CN-0001 keeps a positive margin." },
+    { m2:41,  m1:135, s2:"at risk",  s1:"feasible", cls2:"at", note:"Margin at the P90 of the transfer distribution. CN-0002 is <b>AT_RISK</b> at 41 minutes." },
+    { m2:41,  m1:135, s2:"at risk",  s1:"feasible", cls2:"at", note:"Three costed options: expedite <b>$800</b>, cut-off extension <b>$0</b> and never feasible alone, rebook <b>$2,400</b>." },
+    { m2:41,  m1:135, s2:"awaiting", s1:"feasible", cls2:"at", note:"Policy row 3, tier T1. A card is raised with a single-use token and a <b>120 s</b> clock." },
+    { m2:101, m1:135, s2:"feasible", s1:"feasible", cls2:"ok", note:"Approved after an edit to CRITICAL. Policy re-runs to row 4, the token re-binds, the write lands and the twin verifies: <b>41 to 101</b>." }
+  ];
+
+  var current = -1;
+  function paint(i, animate){
+    var f = FRAMES[i];
+    row2.className = "brow " + f.cls2;
+    p2.textContent = f.s2;
+    p2.className = "pill " + (f.cls2 === "ok" ? "ok" : (f.s2 === "awaiting" ? "risk" : "risk"));
+    p1.textContent = f.s1;
+    v1.textContent = String(f.m1);
+    foot.innerHTML = f.note;
+    bstate.textContent = i >= 6 ? "verified" : (i >= 5 ? "awaiting approval" : "live");
+    dot.style.background = i >= 6 ? "var(--human)" : (i >= 5 ? "var(--write)" : "var(--human)");
+    trace.forEach(function(li){
+      li.classList.toggle("on", parseInt(li.getAttribute("data-t"), 10) <= i);
+    });
+    var from = parseInt(v2.textContent, 10) || f.m2;
+    if(!animate || reduce || from === f.m2){ v2.textContent = String(f.m2); return; }
+    var t0 = null;
+    function step(ts){
+      if(t0 === null) t0 = ts;
+      var k = clamp((ts - t0) / 900, 0, 1);
+      v2.textContent = String(Math.round(from + (f.m2 - from) * ease(k)));
+      if(k < 1) requestAnimationFrame(step); else v2.textContent = String(f.m2);
+    }
+    requestAnimationFrame(step);
+  }
+
+  var scrolly = window.matchMedia("(min-width: 901px)").matches && !reduce;
+  if(!scrolly){
+    steps.forEach(function(s){ s.classList.add("on"); });
+    paint(6, false);
+    return;
+  }
+  paint(0, false);
+  current = 0;
+
+  var io = new IntersectionObserver(function(es){
+    es.forEach(function(en){
+      if(!en.isIntersecting) return;
+      var n = parseInt(en.target.getAttribute("data-step"), 10);
+      steps.forEach(function(s){ s.classList.toggle("on", s === en.target); });
+      if(n !== current){ paint(n, true); current = n; }
+    });
+  }, { rootMargin: "-42% 0px -42% 0px", threshold: 0 });
+  steps.forEach(function(s){ io.observe(s); });
+})();
+
+/* ---------------- the clip: autoplay only when it is on screen ---------------- */
+(function(){
+  var v = document.getElementById("clip");
+  if(!v) return;
+  var io = new IntersectionObserver(function(es){
+    es.forEach(function(en){
+      if(en.isIntersecting && !reduce){ var p = v.play(); if(p && p.catch) p.catch(function(){}); }
+      else { v.pause(); }
+    });
+  }, { threshold: 0.35 });
+  io.observe(v);
+})();
+
+})();
+</script>
+</body>
+</html>

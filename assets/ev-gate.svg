@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 320" width="780" height="320" role="img" aria-label="Expected-value gate: expedites booked and spend per rollover avoided, before and after" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif">
+  <rect x="0" y="0" width="780" height="320" fill="#FFFFFF"/>
+  <text x="24" y="28" font-size="15" font-weight="700" fill="#1a1f24">The expected-value gate, over the same 500 scenarios</text>
+  <text x="24" y="47" font-size="11.5" fill="#5d6772">Every candidate action is priced before it can reach an approval card.</text>
+  <text x="24" y="88" font-size="12" font-weight="700" fill="#1a1f24">Expedites booked</text>
+  <text x="24" y="105" font-size="10.5" fill="#5d6772">count over 500 scenarios</text>
+  <rect x="104.0" y="142.3" width="74" height="101.7" fill="#b6bfc7" rx="2"/>
+  <text x="141" y="132.3" font-size="13" font-weight="700" fill="#1a1f24" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">173</text>
+  <text x="141" y="262" font-size="11.5" fill="#1a1f24" text-anchor="middle">gate off</text>
+  <rect x="236.0" y="227.0" width="74" height="17.0" fill="#0f6d7a" rx="2"/>
+  <text x="273" y="217.0" font-size="13" font-weight="700" fill="#1a1f24" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">29</text>
+  <text x="273" y="262" font-size="11.5" fill="#1a1f24" text-anchor="middle">gate on</text>
+  <line x1="34" y1="244" x2="366" y2="244" stroke="#5d6772" stroke-width="1"/>
+  <text x="414" y="88" font-size="12" font-weight="700" fill="#1a1f24">Expedite spend per rollover avoided</text>
+  <text x="414" y="105" font-size="10.5" fill="#5d6772">US dollars</text>
+  <rect x="482.0" y="142.3" width="74" height="101.7" fill="#b6bfc7" rx="2"/>
+  <text x="519" y="132.3" font-size="13" font-weight="700" fill="#1a1f24" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">$60,835</text>
+  <text x="519" y="262" font-size="11.5" fill="#1a1f24" text-anchor="middle">gate off</text>
+  <rect x="614.0" y="211.0" width="74" height="33.0" fill="#0f6d7a" rx="2"/>
+  <text x="651" y="201.0" font-size="13" font-weight="700" fill="#1a1f24" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">$19,745</text>
+  <text x="651" y="262" font-size="11.5" fill="#1a1f24" text-anchor="middle">gate on</text>
+  <line x1="424" y1="244" x2="732" y2="244" stroke="#5d6772" stroke-width="1"/>
+  <line x1="398" y1="80" x2="398" y2="262" stroke="#e4e9ed" stroke-width="1"/>
+  <text x="24" y="288" font-size="11.5" fill="#1a1f24">An option whose expected value is below its cost is carried as advice with the three numbers on it, never booked.</text>
+  <text x="24" y="306" font-size="10" fill="#5d6772" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">source: evalx/results/save-value-audit-n500.json and save-value-audit-n500-evgate.json</text>
+</svg>
