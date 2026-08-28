@@ -144,7 +144,7 @@ h4{font-size:17px;line-height:1.35;margin:0 0 8px;font-weight:600}
 @media (prefers-reduced-motion:reduce){.anim #hero h1 .w{opacity:1;transform:none;transition:none}}
 #hero .sub{font-size:clamp(17px,1.9vw,20px);line-height:1.55;color:var(--ink-2);max-width:54ch;
   margin:0 0 30px}
-.herolinks{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 30px}
+.herolinks{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 18px}
 .blink{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--rule-2);
   border-radius:4px;padding:11px 16px;font-family:var(--font-mono);font-size:13px;
   letter-spacing:.02em;color:var(--ink-2);background:var(--panel);
@@ -154,6 +154,42 @@ h4{font-size:17px;line-height:1.35;margin:0 0 8px;font-weight:600}
   transform:translateY(-2px)}
 .blink svg{flex:none}
 .blink.primary{border-color:rgba(245,185,66,.55);color:var(--write)}
+.listen{max-width:565px;margin:0 0 28px;border:1px solid rgba(245,185,66,.32);
+  border-left:2px solid var(--write);border-radius:5px;
+  background:linear-gradient(96deg,rgba(245,185,66,.11),rgba(245,185,66,.02) 58%,transparent),
+             var(--panel);
+  transition:border-color .25s var(--ease),box-shadow .3s var(--ease),transform .25s var(--ease)}
+.listen:hover{border-color:rgba(245,185,66,.62);transform:translateY(-2px);
+  box-shadow:0 18px 40px -24px rgba(245,185,66,.55)}
+.listen summary{display:flex;align-items:center;gap:14px;padding:13px 17px 14px;cursor:pointer;
+  list-style:none}
+.listen summary::-webkit-details-marker{display:none}
+.listen summary:focus-visible{outline:2px solid var(--write);outline-offset:3px;border-radius:4px}
+.listen-play{flex:none;display:flex;color:var(--write)}
+.listen-play .bars{display:none}
+.listen.playing .listen-play .tri{display:none}
+.listen.playing .listen-play .bars{display:block}
+.listen-t b{display:block;font-family:var(--font-display);font-weight:600;font-size:16.5px;
+  letter-spacing:-.005em;color:var(--ink)}
+.listen-m{display:flex;align-items:center;gap:10px;margin-top:4px;font-family:var(--font-mono);
+  font-size:11.5px;letter-spacing:.05em;color:var(--ink-3)}
+.eq{display:none;align-items:flex-end;gap:2px;height:11px}
+.listen.playing .eq{display:inline-flex}
+.eq i{width:2px;height:11px;border-radius:1px;background:var(--write);opacity:.6;
+  transform:scaleY(.22);transform-origin:bottom}
+.listen.playing .eq i{animation:eqb .9s var(--ease) infinite}
+.listen.playing .eq i:nth-child(2){animation-duration:.62s}
+.listen.playing .eq i:nth-child(3){animation-duration:1.06s}
+.listen.playing .eq i:nth-child(4){animation-duration:.78s}
+@keyframes eqb{0%,100%{transform:scaleY(.22)}50%{transform:scaleY(1)}}
+@media (prefers-reduced-motion:reduce){.listen.playing .eq i{animation:none;transform:scaleY(.6)}}
+.listen-p{padding:0 17px 15px}
+.listen-p audio{display:block;width:100%;height:36px}
+@media (max-width:520px){
+  .listen summary{gap:11px;padding:12px 13px}
+  .listen-t b{font-size:15px}
+  .listen-m{font-size:10.5px;letter-spacing:.03em}
+}
 .herometa{font-family:var(--font-mono);font-size:12.5px;color:var(--ink-3);
   display:flex;flex-wrap:wrap;gap:6px 20px;padding-top:20px;border-top:1px solid var(--rule)}
 .herometa b{color:var(--ink-2);font-weight:500}
@@ -570,16 +606,6 @@ figcaption:not(.code-head)::after{content:"";display:block;width:64px;height:1px
   #rail .lbl{transition:none}
   #rail .lbl.out{opacity:1}
 }
-
-.podcast{margin:0}
-.pod{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:22px 24px}
-.pod-meta{display:flex;gap:14px;align-items:center;margin:0 0 16px}
-.pod-icon{color:var(--write);display:flex}
-.pod-title{margin:0;font-family:var(--font-display);font-weight:600;font-size:19px;color:var(--ink)}
-.pod-sub{margin:3px 0 0;font-family:var(--font-mono);font-size:12.5px;color:var(--ink-3)}
-.pod audio{width:100%;height:40px;display:block}
-.pod-note{margin:14px 0 0;font-size:14px;line-height:1.55;color:var(--ink-3)}
-@media(max-width:620px){.pod{padding:18px 16px}}
 </style>
 <noscript><style>.reveal,[class*="reveal"]{opacity:1 !important;transform:none !important}</style></noscript></head>
 <body>
@@ -631,6 +657,28 @@ figcaption:not(.code-head)::after{content:"";display:block;width:64px;height:1px
             Submission deck
           </a>
         </div>
+        <details class="listen" id="listenbar">
+          <summary>
+            <span class="listen-play" aria-hidden="true">
+              <svg viewBox="0 0 32 32" width="32" height="32">
+                <circle cx="16" cy="16" r="15" fill="none" stroke="currentColor" stroke-opacity=".4"/>
+                <path class="tri" d="M13 10.4v11.2L22.2 16 13 10.4z" fill="currentColor"/>
+                <g class="bars" fill="currentColor">
+                  <rect x="12.3" y="10.6" width="2.8" height="10.8" rx="1.2"/>
+                  <rect x="17.1" y="10.6" width="2.8" height="10.8" rx="1.2"/>
+                </g>
+              </svg>
+            </span>
+            <span class="listen-t">
+              <b>Listen to the podcast exploring this project</b>
+              <span class="listen-m">22 min 21 s · generated from the judge walkthrough<span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span></span>
+            </span>
+          </summary>
+          <div class="listen-p">
+            <audio id="podcast" controls preload="none" src="assets/relay-podcast.m4a"
+                   aria-label="A recorded conversation about RELAY, twenty two minutes"></audio>
+          </div>
+        </details>
         <p class="herometa">
           <span>All terminal data <b>SYNTHETIC</b></span>
           <span><b>1,351</b> tests</span>
@@ -1254,41 +1302,6 @@ figcaption:not(.code-head)::after{content:"";display:block;width:64px;height:1px
 
 <!-- ==================== 7. EVIDENCE ==================== -->
 <hr class="rulebar">
-<section id="listen">
-<div class="wrap">
-  <p class="kicker rv">Listen</p>
-  <h2 class="rv">A conversation about the design, in twenty two minutes</h2>
-  <p class="lede rv">Two synthetic hosts talk through the whole system, generated from
-    <b>deliverables/JUDGE-WALKTHROUGH.md</b>. The voices are machine generated; the content is the
-    written walkthrough, including the parts that do not flatter the project, such as the negative
-    column in PSA's own accounts and the sweep that grades itself.</p>
-
-  <figure class="rv podcast">
-    <div class="pod">
-      <div class="pod-meta">
-        <span class="pod-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor"
-               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2a4 4 0 0 0-4 4v6a4 4 0 0 0 8 0V6a4 4 0 0 0-4-4z"/>
-            <path d="M5 11v1a7 7 0 0 0 14 0v-1"/><path d="M12 19v3"/>
-          </svg>
-        </span>
-        <div>
-          <p class="pod-title">Safe agentic AI in Singapore container terminals</p>
-          <p class="pod-sub">22 minutes 21 seconds · generated from the judge walkthrough</p>
-        </div>
-      </div>
-      <audio controls preload="none" src="assets/relay-podcast.m4a"
-             aria-label="Audio conversation about RELAY, twenty two minutes"></audio>
-      <p class="pod-note">Nothing in this recording is a source. Every figure it quotes is on this
-        page or in a results file, and the walkthrough it was made from names the file behind each
-        one.</p>
-    </div>
-    <figcaption><span class="fig-src">site/assets/relay-podcast.m4a</span></figcaption>
-  </figure>
-</div>
-</section>
-
 <section id="evidence">
 <div class="wrap">
   <p class="kicker rv">06 · Evidence</p>
@@ -1617,14 +1630,15 @@ function json(id){ var el=document.getElementById(id); try{ return JSON.parse(el
    by the page visibility event when the tab is hidden, so it costs nothing further
    down the page.
 
-   The scene is a parallax dot field over a horizon carrying yard lights, three
-   vessel silhouettes crossing at different depths on periods near ninety seconds,
-   and a floodlight sweep every twenty-seven seconds. Every fill is chosen so that,
-   composited on the page ground #0A0F14, no pixel of the animation passes about
-   12 percent relative luminance. The caps below are the ceiling: the brightest
-   value any element can reach. The wordmark at #E8EDF2 sits near 80 percent and
-   the paragraph at #B4C0CC near 50 percent, so the text stays the brightest thing
-   in the hero by a wide margin.
+   The scene is a parallax dot field over a horizon carrying yard lights, an approach
+   carrying vessels in three depth bands on periods between eighty and two hundred and
+   fifty seconds, and a floodlight sweep every twenty-seven seconds. Every fill is
+   chosen so that, composited on the page ground #0A0F14, no pixel of the animation
+   passes about 12 percent relative luminance. The caps below are the ceiling: the
+   brightest value any element can reach. A hull at its strongest reaches 4.2 percent
+   and a lamp 5.2 percent, so no vessel outshines a light. The wordmark at #E8EDF2
+   sits near 84 percent and the paragraph at #B4C0CC near 52 percent, so the text
+   stays the brightest thing in the hero by a wide margin.
 
    Positions are derived from an elapsed-seconds clock rather than accumulated per
    frame, so the scene runs at the same speed whatever the frame rate, and drawing
@@ -1640,9 +1654,9 @@ function json(id){ var el=document.getElementById(id); try{ return JSON.parse(el
   var t = 0, last = 0, FRAME = 1000 / 32;
 
   var A_DOT = 0.40, A_LAMP = 0.28, A_SWEEP = 0.05;
-  var GREY = "128,144,160", AMBER = "245,185,66", HULL = "22,31,41", SWEEP = "148,164,184";
+  var GREY = "128,144,160", AMBER = "245,185,66", HULL = "46,62,80", SWEEP = "148,164,184";
 
-  var layers = [], lamps = [], ships = [], horizon = 0;
+  var layers = [], lamps = [], ships = [], moored = [], horizon = 0;
 
   function seedRandom(s){
     return function(){ s |= 0; s = s + 0x6D2B79F5 | 0;
@@ -1659,6 +1673,37 @@ function json(id){ var el=document.getElementById(id); try{ return JSON.parse(el
     c.width = Math.round(w * dpr); c.height = Math.round(h * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     build();
+  }
+
+  /* One vessel's silhouette in its own coordinates, bow at positive x, deck line at
+     y = -3. Three shapes cross a terminal approach and they do not look alike: a box
+     boat stowed nine or ten bays deep, a feeder around half that length, and the
+     occasional tug running with no deck cargo at all. Bay widths and heights are
+     drawn once at build time rather than per frame, so a ship keeps its own stow for
+     as long as the page is open. */
+  function hullOf(rnd){
+    var roll = rnd(), H = {};
+    H.kind = roll < 0.12 ? "tug" : (roll < 0.38 ? "feeder" : "box");
+    H.L    = H.kind === "tug" ? 34 : (H.kind === "feeder" ? 74 + rnd() * 14
+                                                          : 104 + rnd() * 26);
+    H.deck = H.kind === "tug" ? 9 : 12 + rnd() * 3;
+    var tall = H.kind === "tug" ? 0 : (H.kind === "feeder" ? 15 : 24);
+    var x = -H.L + 12, lim = H.L - (H.kind === "tug" ? 22 : 46), bw;
+    H.stacks = [];
+    while(tall && x < lim){
+      bw = 9 + rnd() * 11;
+      if(x + bw > lim) break;
+      H.stacks.push([Math.round(x), Math.round(bw), Math.round(7 + rnd() * tall)]);
+      x += bw + 2 + rnd() * 5;
+    }
+    H.house  = H.kind === "tug" ? { x: -9, w: 15, h: 15 }
+                                : { x: H.L - 34, w: 19 + rnd() * 7, h: 23 + rnd() * 9 };
+    H.funnel = { x: H.house.x + 5, w: 7 + rnd() * 3, h: 9 + rnd() * 5 };
+    var top = -3 - H.house.h;
+    H.lights = [[-H.L + 11, -H.deck - 6], [H.L - 13, -H.deck - 5],
+                [H.house.x + H.house.w * 0.5, top - 4],
+                [H.funnel.x + H.funnel.w * 0.5, top - H.funnel.h - 6]];
+    return H;
   }
 
   function build(){
@@ -1695,13 +1740,59 @@ function json(id){ var el=document.getElementById(id); try{ return JSON.parse(el
                    mast: rnd() > 0.74 ? 8 + rnd() * 16 : 0 });
     }
 
-    /* Three vessels at three depths. Periods sit around ninety seconds. */
-    ships = [
-      { y: horizon -  7, s: 0.30, period:  96, phase: 0.12, dir:  1, a: 0.55 },
-      { y: horizon + 22, s: 0.54, period:  84, phase: 0.61, dir: -1, a: 0.78 },
-      { y: horizon + Math.min(84, (h - horizon) * 0.46), s: 0.86, period: 118,
-        phase: 0.34, dir: 1, a: 0.92 }
+    /* A working approach rather than a single lane. The count follows the width, so a
+       phone carries a handful and a wide display carries the traffic a terminal
+       approach actually holds. Three bands give the depth: distant hulls sit on the
+       horizon, small and faint and slow across the screen, while the near band runs
+       large and low and fast enough to read as close. Phases are spread evenly inside
+       each band with a little jitter, so vessels are distributed across the crossing
+       at any moment rather than arriving together, and direction is mixed so the
+       approach has traffic both ways. */
+    var bands = [
+      { s: [0.15, 0.28], dy: [-15,  -3], a: [0.34, 0.52], per: [155, 250], each: 165 },
+      { s: [0.33, 0.55], dy: [  6,  30], a: [0.56, 0.76], per: [104, 170], each: 255 },
+      { s: [0.62, 0.95], dy: [ 44,  96], a: [0.80, 0.94], per: [ 82, 132], each: 470 }
     ];
+    var deep = h - horizon;
+    ships = [];
+    bands.forEach(function(b, bi){
+      var n = clamp(Math.round(w / b.each), bi === 2 ? 1 : 3, [10, 7, 4][bi]), i, dy;
+      for(i = 0; i < n; i++){
+        dy = b.dy[0] + rnd() * (b.dy[1] - b.dy[0]);
+        ships.push({
+          band: bi,
+          y: horizon + Math.min(dy, deep * 0.62),
+          s: b.s[0] + rnd() * (b.s[1] - b.s[0]),
+          period: b.per[0] + rnd() * (b.per[1] - b.per[0]),
+          phase: (i + 0.12 + rnd() * 0.76) / n,
+          dir: rnd() > 0.62 ? -1 : 1,
+          a: b.a[0] + rnd() * (b.a[1] - b.a[0]),
+          wake: bi === 2,
+          hull: hullOf(rnd)
+        });
+      }
+    });
+
+    /* The anchorage. Off Singapore the waiting vessels are the permanent feature of
+       the view, so a row of them is moored on the horizon rather than crossing it.
+       They hold their positions and only breathe on the swell, which means the
+       horizon is never empty whatever moment of the crossing cycle the page is
+       opened at. */
+    moored = [];
+    var mn = clamp(Math.round(w / 118), 5, 14), gap = w / mn, mi;
+    for(mi = 0; mi < mn; mi++){
+      moored.push({
+        x: (mi + 0.22 + rnd() * 0.56) * gap,
+        y: horizon - 1 - rnd() * 4,
+        s: 0.10 + rnd() * 0.11,
+        a: 0.30 + rnd() * 0.20,
+        bob: 0.5 + rnd() * 0.8,
+        sp: 0.22 + rnd() * 0.22,
+        ph: rnd() * 6.283,
+        mir: rnd() > 0.5 ? -1 : 1,
+        hull: hullOf(rnd)
+      });
+    }
   }
 
   function dot(x, y, r, rgb, a){
@@ -1752,34 +1843,70 @@ function json(id){ var el=document.getElementById(id); try{ return JSON.parse(el
     }
   }
 
-  function drawShip(sh){
-    var span = w + 360 * sh.s;
-    var k = wrap(t / sh.period + sh.phase, 1);
-    var x = -180 * sh.s + k * span;
-    if(sh.dir < 0) x = w - x;
-    if(x < -200 * sh.s || x > w + 200 * sh.s) return;
-
+  /* One vessel painted at a given place on the canvas. Both the crossing traffic and
+     the anchorage come through here, so there is a single description of what a ship
+     looks like rather than two that can drift apart. */
+  function paintHull(sh, x, y, mir, wake){
+    var H = sh.hull, i;
     ctx.save();
-    ctx.translate(x, sh.y);
-    ctx.scale(sh.s, sh.s);
+    ctx.translate(x, y);
+    ctx.scale(sh.s * mir, sh.s);
     ctx.fillStyle = "rgba(" + HULL + "," + sh.a.toFixed(2) + ")";
     ctx.beginPath();
-    ctx.moveTo(-118, -3); ctx.lineTo(122, -3); ctx.lineTo(104, 12); ctx.lineTo(-100, 12);
+    ctx.moveTo(-H.L, -3); ctx.lineTo(H.L, -3);
+    ctx.lineTo(H.L - 16, H.deck); ctx.lineTo(-H.L + 15, H.deck);
     ctx.closePath(); ctx.fill();
+    /* the deck edge, so a hull carries a line and not only a mass */
+    ctx.fillStyle = "rgba(" + SWEEP + "," + (sh.a * 0.09).toFixed(3) + ")";
+    ctx.fillRect(-H.L + 4, -3.6, H.L * 2 - 12, 0.9);
+    ctx.fillStyle = "rgba(" + HULL + "," + sh.a.toFixed(2) + ")";
     /* container stacks along the deck, then the accommodation block and funnel aft */
-    var st = [[-100,11,15],[-82,15,21],[-60,13,17],[-38,16,23],[-14,13,18],
-              [8,16,22],[32,12,16],[52,14,19],[72,10,13]], i;
-    for(i = 0; i < st.length; i++) ctx.fillRect(st[i][0], -3 - st[i][2], st[i][1], st[i][2]);
-    ctx.fillRect(86, -31, 22, 28);
-    ctx.fillRect(92, -41, 9, 11);
+    for(i = 0; i < H.stacks.length; i++){
+      ctx.fillRect(H.stacks[i][0], -3 - H.stacks[i][2], H.stacks[i][1], H.stacks[i][2]);
+    }
+    ctx.fillRect(H.house.x, -3 - H.house.h, H.house.w, H.house.h);
+    ctx.fillRect(H.funnel.x, -3 - H.house.h - H.funnel.h, H.funnel.w, H.funnel.h);
     ctx.restore();
 
-    /* running lights, sized in screen units so they stay points of light */
-    var lx = [-104, -20, 66, 97, 97], ly = [-20, -27, -20, -34, -45], j;
-    for(j = 0; j < lx.length; j++){
-      var a = 0.13 + 0.13 * (0.5 + 0.5 * Math.sin(t * 0.8 + j * 1.9 + sh.phase * 6));
-      dot(x + lx[j] * sh.s, sh.y + ly[j] * sh.s, 1, AMBER, Math.min(a, A_LAMP));
+    /* A wake behind the near band only, where the water is close enough to carry one.
+       It is drawn as a fading streak at the waterline, well under the lamp cap. */
+    if(wake){
+      var wl = 150 * sh.s, sx = x - mir * (H.L - 4) * sh.s, ex = sx - mir * wl;
+      var g = ctx.createLinearGradient(sx, 0, ex, 0);
+      g.addColorStop(0, "rgba(" + SWEEP + ",0.06)");
+      g.addColorStop(1, "rgba(" + SWEEP + ",0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(Math.min(sx, ex), y + H.deck * sh.s - 1, wl, 2);
     }
+
+    /* running lights, sized in screen units so they stay points of light whatever
+       the vessel's scale, and out of phase with each other so the horizon flickers
+       the way a line of ships at night does */
+    var seed = sh.phase !== undefined ? sh.phase * 6 : sh.ph;
+    for(i = 0; i < H.lights.length; i++){
+      var a = 0.13 + 0.13 * (0.5 + 0.5 * Math.sin(t * 0.8 + i * 1.9 + seed));
+      dot(x + mir * H.lights[i][0] * sh.s, y + H.lights[i][1] * sh.s, 1,
+          AMBER, Math.min(a, A_LAMP));
+    }
+  }
+
+  /* The moored vessels hold their positions and only breathe on the swell. */
+  function drawMoored(){
+    for(var i = 0; i < moored.length; i++){
+      var m = moored[i];
+      paintHull(m, m.x, m.y + Math.sin(t * m.sp + m.ph) * m.bob, m.mir, 0);
+    }
+  }
+
+  function drawShip(sh){
+    var off = (sh.hull.L + 62) * sh.s;
+    var k = wrap(t / sh.period + sh.phase, 1);
+    var x = -off + k * (w + off * 2);
+    if(sh.dir < 0) x = w - x;
+    if(x < -off - 8 || x > w + off + 8) return;
+    /* The hull is mirrored on a leftbound heading, so the bow leads the way the
+       vessel is actually travelling rather than every ship facing the same way. */
+    paintHull(sh, x, sh.y, sh.dir < 0 ? -1 : 1, sh.wake);
   }
 
   function drawSweep(){
@@ -1800,15 +1927,23 @@ function json(id){ var el=document.getElementById(id); try{ return JSON.parse(el
     ctx.closePath(); ctx.fill();
   }
 
+  /* Bands are painted in depth order with the dot layers between them, so a distant
+     hull never sits on top of a close one and the drifting field reads as being in
+     front of the far traffic and behind the near. */
+  function drawBand(b){
+    for(var i = 0; i < ships.length; i++) if(ships[i].band === b) drawShip(ships[i]);
+  }
+
   function paint(){
     ctx.clearRect(0, 0, w, h);
     drawLayer(0);
     drawHorizon();
-    drawShip(ships[0]);
+    drawMoored();
+    drawBand(0);
     drawLamps();
-    drawShip(ships[1]);
+    drawBand(1);
     drawLayer(1);
-    drawShip(ships[2]);
+    drawBand(2);
     drawLayer(2);
     drawSweep();
   }
@@ -1977,11 +2112,17 @@ function typeFirstLine(fig){
   links.forEach(function(a){ map[a.dataset.sec] = a; });
 
   /* The rail also carries the name of the section it is standing in. The names are
-     read from the navigation so there is one wording, not two. The hero has no
-     navigation entry, so it takes the wordmark. */
+     read from the navigation so there is one wording, not two. A section with no
+     navigation entry falls back to its own kicker with the leading number dropped,
+     and the hero, which has neither, takes the wordmark. */
   var label = document.getElementById("railLabel");
   var NAMES = { top: "RELAY" }, shown = "RELAY", swap = null;
   links.forEach(function(a){ NAMES[a.dataset.sec] = a.textContent.trim(); });
+  secs.forEach(function(s){
+    if(NAMES[s.id]) return;
+    var k = s.querySelector(".kicker");
+    if(k) NAMES[s.id] = k.textContent.trim().replace(/^\d+\s*·\s*/, "");
+  });
   function setLabel(id){
     var name = NAMES[id];
     if(!label || !name || name === shown) return;
@@ -2249,6 +2390,26 @@ document.addEventListener("click", function(e){
     });
   }, { rootMargin: "-42% 0px -42% 0px", threshold: 0 });
   steps.forEach(function(s){ io.observe(s); });
+})();
+
+/* ---------------- the hero player ----------------
+   Opening the panel starts the audio, so the caption costs one click rather than
+   two, and closing it stops. The glyph and the meter follow the audio's own state
+   rather than the panel's, so a person who pauses from the native control sees the
+   bar agree with what they hear. With script off the panel still opens and the
+   native control still plays; the file is only fetched once someone asks for it. */
+(function(){
+  var box = document.getElementById("listenbar");
+  var a = document.getElementById("podcast");
+  if(!box || !a) return;
+  box.addEventListener("toggle", function(){
+    if(box.open){ var p = a.play(); if(p && p.catch) p.catch(function(){}); }
+    else a.pause();
+  });
+  a.addEventListener("playing", function(){ box.classList.add("playing"); });
+  ["pause","ended"].forEach(function(e){
+    a.addEventListener(e, function(){ box.classList.remove("playing"); });
+  });
 })();
 
 /* ---------------- the clip: autoplay only when it is on screen ---------------- */
