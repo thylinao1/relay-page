@@ -487,11 +487,104 @@ footer{border-top:1px solid var(--rule);padding:clamp(46px,6vw,72px) 0 56px;back
 .footnote{margin-top:clamp(34px,4vw,52px);padding-top:22px;border-top:1px solid var(--rule);
   font-size:14.5px;line-height:1.6;color:var(--ink-3);max-width:80ch}
 .footnote b{color:var(--ink-2)}
+
+/* ============================================================
+   Motion. Everything in this block is switched off in the
+   reduced-motion rules at the end of it, and the page reads
+   with none of it running.
+   ============================================================ */
+
+/* ---------- the rule beside a kicker draws itself on entry ---------- */
+.anim .kicker::before{transform:scaleX(0);transform-origin:left center;
+  transition:transform .6s var(--ease) .06s}
+.anim .kicker.in::before{transform:scaleX(1)}
+
+/* ---------- hero container: the at-risk mark breathes ---------- */
+.atrisk-glow{opacity:.08}
+.anim .atrisk-glow{animation:breathe 4.4s ease-in-out infinite}
+@keyframes breathe{0%,100%{opacity:.06}50%{opacity:.26}}
+
+/* ---------- hero container: a slow float, and yard dashes that drift ---------- */
+.anim .boxfloat{animation:boxfloat 9.5s ease-in-out infinite}
+@keyframes boxfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.anim .yardline{animation:yarddrift 7.5s linear infinite}
+.anim .yarddash{animation:yarddrift2 13s linear infinite}
+@keyframes yarddrift{from{stroke-dashoffset:0}to{stroke-dashoffset:-42}}
+@keyframes yarddrift2{from{stroke-dashoffset:0}to{stroke-dashoffset:-30}}
+
+/* ---------- architecture: each box lights once, in flow order ---------- */
+.node::after{content:"";position:absolute;left:-1px;top:-1px;right:-1px;bottom:-1px;
+  border:1px solid var(--own,var(--rule-c));border-radius:5px;opacity:0;pointer-events:none}
+.anim .node.lit::after{animation:nodelight 1s var(--ease) both}
+@keyframes nodelight{0%{opacity:0}18%{opacity:.85}100%{opacity:0}}
+
+/* ---------- code excerpts type their first line ---------- */
+.code .t.typing::after{content:"";display:inline-block;width:7px;height:.95em;
+  margin-left:1px;vertical-align:-2px;background:var(--write);opacity:.8;
+  animation:caret .9s steps(1,end) infinite}
+@keyframes caret{0%,49%{opacity:.8}50%,100%{opacity:0}}
+
+/* ---------- a hairline draws under each figure caption on entry ---------- */
+figcaption:not(.code-head)::after{content:"";display:block;width:64px;height:1px;
+  margin-top:14px;background:var(--rule-2);transform-origin:left center}
+.anim figcaption:not(.code-head)::after{transform:scaleX(0);
+  transition:transform .7s var(--ease) .14s}
+.anim .rv.in figcaption:not(.code-head)::after{transform:scaleX(1)}
+
+/* ---------- the hash chain pulses along itself while it is idle ---------- */
+.ev::after{content:"";position:absolute;left:-1px;top:-1px;right:-1px;bottom:-1px;
+  border:1px solid var(--human);border-radius:5px;opacity:0;pointer-events:none}
+.anim .chain.pulse .ev::after{animation:chainpulse 5.4s var(--ease) infinite;
+  animation-delay:calc(var(--k,0) * 260ms)}
+@keyframes chainpulse{0%{opacity:0}5%{opacity:.5}17%{opacity:0}100%{opacity:0}}
+
+/* ---------- cards lift under the pointer ---------- */
+.pcard,.shot,.ev{transition:transform .25s var(--ease),border-color .25s var(--ease),
+  box-shadow .3s var(--ease),background .25s var(--ease)}
+@media (hover:hover){
+  .pcard:hover,.shot:hover{transform:translateY(-2px);border-color:var(--rule-2);
+    box-shadow:0 18px 34px -22px rgba(0,0,0,.95)}
+  .ev:hover{transform:translateY(-2px);box-shadow:0 18px 34px -22px rgba(0,0,0,.95)}
+}
+
+/* ---------- the rail names the section it is in ---------- */
+#rail .lbl{position:fixed;left:32px;top:50%;transform:translateY(-50%);
+  writing-mode:vertical-rl;font-family:var(--font-mono);font-size:10.5px;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);white-space:nowrap;
+  transition:opacity .22s var(--ease)}
+#rail .lbl.out{opacity:0}
+/* Below this width the label would sit under the first column of text, so it goes. */
+@media (max-width:1259px){#rail .lbl{display:none}}
+
+@media (prefers-reduced-motion:reduce){
+  .anim .kicker::before,.anim .kicker.in::before{transform:none;transition:none}
+  .anim .atrisk-glow{animation:none;opacity:.12}
+  .anim .boxfloat,.anim .yardline,.anim .yarddash{animation:none}
+  .anim .node.lit::after{animation:none;opacity:0}
+  .code .t.typing::after{display:none;animation:none}
+  .anim figcaption:not(.code-head)::after,
+  .anim .rv.in figcaption:not(.code-head)::after{transform:none;transition:none}
+  .anim .chain.pulse .ev::after{animation:none;opacity:0}
+  .pcard,.shot,.ev{transition:border-color .25s,box-shadow .3s,background .25s}
+  .pcard:hover,.shot:hover,.ev:hover{transform:none}
+  #rail .lbl{transition:none}
+  #rail .lbl.out{opacity:1}
+}
+
+.podcast{margin:0}
+.pod{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:22px 24px}
+.pod-meta{display:flex;gap:14px;align-items:center;margin:0 0 16px}
+.pod-icon{color:var(--write);display:flex}
+.pod-title{margin:0;font-family:var(--font-display);font-weight:600;font-size:19px;color:var(--ink)}
+.pod-sub{margin:3px 0 0;font-family:var(--font-mono);font-size:12.5px;color:var(--ink-3)}
+.pod audio{width:100%;height:40px;display:block}
+.pod-note{margin:14px 0 0;font-size:14px;line-height:1.55;color:var(--ink-3)}
+@media(max-width:620px){.pod{padding:18px 16px}}
 </style>
 <noscript><style>.reveal,[class*="reveal"]{opacity:1 !important;transform:none !important}</style></noscript></head>
 <body>
 
-<div id="rail" aria-hidden="true"><span class="track"></span><span class="fill"></span></div>
+<div id="rail" aria-hidden="true"><span class="track"></span><span class="fill"></span><span class="lbl" id="railLabel">RELAY</span></div>
 
 <header id="bar">
   <div class="wrap-wide">
@@ -525,7 +618,7 @@ footer{border-top:1px solid var(--rule);padding:clamp(46px,6vw,72px) 0 56px;back
           to a terminal system in front of the duty officer as a priced, reversible decision on a
           tamper-evident record.</p>
         <div class="herolinks">
-          <a class="blink primary" href="../video/out/relay-video.mp4" id="videoLink">
+          <a class="blink primary" href="assets/relay-video.mp4" id="videoLink">
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><path d="M2 1.4v10.2l9-5.1L2 1.4z" fill="currentColor"/></svg>
             Demo video
           </a>
@@ -533,7 +626,7 @@ footer{border-top:1px solid var(--rule);padding:clamp(46px,6vw,72px) 0 56px;back
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 .5a7.5 7.5 0 00-2.37 14.62c.37.07.51-.16.51-.36l-.01-1.26c-2.09.45-2.53-1-2.53-1-.34-.87-.83-1.1-.83-1.1-.68-.47.05-.46.05-.46.75.05 1.15.77 1.15.77.67 1.15 1.76.82 2.19.63.07-.49.26-.82.48-1.01-1.67-.19-3.42-.83-3.42-3.71 0-.82.29-1.49.77-2.02-.08-.19-.34-.95.07-1.98 0 0 .63-.2 2.06.77a7.2 7.2 0 013.75 0c1.43-.97 2.06-.77 2.06-.77.41 1.03.15 1.79.08 1.98.48.53.77 1.2.77 2.02 0 2.89-1.76 3.52-3.43 3.7.27.23.51.69.51 1.4l-.01 2.07c0 .2.14.44.52.36A7.5 7.5 0 008 .5z" fill="currentColor"/></svg>
             Repository
           </a>
-          <a class="blink" href="../deliverables/deck/relay-deck.html">
+          <a class="blink" href="assets/relay-deck.pdf">
             <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="1" y="2" width="12" height="8.5" stroke="currentColor" stroke-width="1.2"/><path d="M4.5 12.6h5" stroke="currentColor" stroke-width="1.2"/></svg>
             Submission deck
           </a>
@@ -564,6 +657,9 @@ footer{border-top:1px solid var(--rule);padding:clamp(46px,6vw,72px) 0 56px;back
               <stop offset="1" stop-color="#000000" stop-opacity="0"/>
             </radialGradient>
             <clipPath id="sideClip"><rect x="72" y="148" width="452" height="188"/></clipPath>
+            <filter id="glowBlur" x="-40%" y="-120%" width="180%" height="340%">
+              <feGaussianBlur stdDeviation="3.4"/>
+            </filter>
           </defs>
 
           <!-- ground shadow -->
@@ -571,13 +667,16 @@ footer{border-top:1px solid var(--rule);padding:clamp(46px,6vw,72px) 0 56px;back
 
           <!-- yard lines -->
           <path d="M20 372 H700" stroke="#2E3F52" stroke-width="2"/>
-          <path d="M40 400 H680" stroke="#223040" stroke-width="1" stroke-dasharray="16 14" opacity=".8"/>
+          <path class="yarddash" d="M40 400 H680" stroke="#223040" stroke-width="1" stroke-dasharray="16 14" opacity=".8"/>
           <path d="M96 372 v28 M232 372 v28 M368 372 v28 M504 372 v28 M640 372 v28"
                 stroke="#223040" stroke-width="1" opacity=".7"/>
-          <path d="M96 372 H392" stroke="#F5B942" stroke-width="2.5" stroke-dasharray="26 16" opacity=".9"/>
+          <path class="yardline" d="M96 372 H392" stroke="#F5B942" stroke-width="2.5" stroke-dasharray="26 16" opacity=".9"/>
           <text x="20" y="426" font-family="JetBrains Mono, monospace" font-size="11" fill="#8090A0"
                 letter-spacing="1.6">YARD BLOCK Y12 · TUAS-T3</text>
 
+          <!-- The container itself floats as one group. The ground shadow and the yard
+               lines stay put, so the box reads as lifted rather than the whole scene moving. -->
+          <g class="boxfloat">
           <!-- top face, slight isometric offset -->
           <path d="M72 148 L118 118 H614 L568 148 Z" fill="url(#cTop)" stroke="#2E3F52" stroke-width="1"/>
           <path d="M140 130 H596 M160 122 H584" stroke="#223040" stroke-width="1" opacity=".55"/>
@@ -629,6 +728,8 @@ footer{border-top:1px solid var(--rule);padding:clamp(46px,6vw,72px) 0 56px;back
                 fill="#E8EDF2" letter-spacing="2.6">MSKU 481007-3</text>
           <text class="fine" x="104" y="236" font-family="JetBrains Mono, monospace" font-size="11.5"
                 fill="#8090A0" letter-spacing="1.4">BOX GROUP BG-0002 · CONNECTION CN-0002</text>
+          <rect class="atrisk-box atrisk-glow" x="104" y="256" width="120" height="34" fill="none"
+                stroke="#F5B942" stroke-width="7" rx="2" filter="url(#glowBlur)"/>
           <rect class="atrisk-box" x="104" y="256" width="120" height="34" fill="none"
                 stroke="#F5B942" stroke-width="1.4" rx="2"/>
           <text class="atrisk-t" x="115" y="278" font-family="JetBrains Mono, monospace" font-size="13"
@@ -639,6 +740,7 @@ footer{border-top:1px solid var(--rule);padding:clamp(46px,6vw,72px) 0 56px;back
           <rect class="fine" x="398" y="256" width="112" height="34" fill="none" stroke="#2E3F52" stroke-width="1.2" rx="2"/>
           <text class="fine" x="409" y="278" font-family="JetBrains Mono, monospace" font-size="11.5" fill="#8090A0"
                 letter-spacing="1.2">CSC PLATE</text>
+          </g>
         </svg>
 
         <div class="chip">
@@ -874,16 +976,17 @@ footer{border-top:1px solid var(--rule);padding:clamp(46px,6vw,72px) 0 56px;back
 <div class="wrap">
   <p class="kicker rv">03 · Watch it run</p>
   <h2 class="rv">The recorded console, in motion</h2>
-  <p class="lede rv">Twenty seconds cut from the demo recording. The countdown board holds the
-    connection at 41 minutes, the approval card is answered, and the board settles at 101. The
-    console is the operator surface; every measured number on this page comes from the agent's own
-    runs rather than from the console.</p>
+  <p class="lede rv">Thirty-four seconds cut from the demo recording, as a sequence of labelled
+    zooms rather than a wide shot. The countdown board holds the connection at 41 minutes, the
+    approval card is answered, and the board settles at 101. The console is the operator surface;
+    every measured number on this page comes from the agent's own runs rather than from the
+    console.</p>
 
   <figure class="rv">
     <div class="clipwrap">
       <video id="clip" src="assets/console-loop.mp4" poster="assets/console-loop.jpg"
              width="1280" height="720" muted loop playsinline preload="metadata" controls
-             aria-label="Twenty seconds of the RELAY operator console: the countdown board, an approval card and the recovered margin"></video>
+             aria-label="Thirty-four seconds of the RELAY operator console, zoomed and labelled: the countdown board, an approval card and the recovered margin"></video>
     </div>
     <figcaption>Recorded on the laptop that produced the demo, with the pricing gate off, which is
       the arm in which this expedite is offered as a card rather than carried as advice.
@@ -1151,6 +1254,41 @@ footer{border-top:1px solid var(--rule);padding:clamp(46px,6vw,72px) 0 56px;back
 
 <!-- ==================== 7. EVIDENCE ==================== -->
 <hr class="rulebar">
+<section id="listen">
+<div class="wrap">
+  <p class="kicker rv">Listen</p>
+  <h2 class="rv">A conversation about the design, in twenty two minutes</h2>
+  <p class="lede rv">Two synthetic hosts talk through the whole system, generated from
+    <b>deliverables/JUDGE-WALKTHROUGH.md</b>. The voices are machine generated; the content is the
+    written walkthrough, including the parts that do not flatter the project, such as the negative
+    column in PSA's own accounts and the sweep that grades itself.</p>
+
+  <figure class="rv podcast">
+    <div class="pod">
+      <div class="pod-meta">
+        <span class="pod-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a4 4 0 0 0-4 4v6a4 4 0 0 0 8 0V6a4 4 0 0 0-4-4z"/>
+            <path d="M5 11v1a7 7 0 0 0 14 0v-1"/><path d="M12 19v3"/>
+          </svg>
+        </span>
+        <div>
+          <p class="pod-title">Safe agentic AI in Singapore container terminals</p>
+          <p class="pod-sub">22 minutes 21 seconds · generated from the judge walkthrough</p>
+        </div>
+      </div>
+      <audio controls preload="none" src="assets/relay-podcast.m4a"
+             aria-label="Audio conversation about RELAY, twenty two minutes"></audio>
+      <p class="pod-note">Nothing in this recording is a source. Every figure it quotes is on this
+        page or in a results file, and the walkthrough it was made from names the file behind each
+        one.</p>
+    </div>
+    <figcaption><span class="fig-src">site/assets/relay-podcast.m4a</span></figcaption>
+  </figure>
+</div>
+</section>
+
 <section id="evidence">
 <div class="wrap">
   <p class="kicker rv">06 · Evidence</p>
@@ -1342,27 +1480,27 @@ footer{border-top:1px solid var(--rule);padding:clamp(46px,6vw,72px) 0 56px;back
         <h4>Project</h4>
         <ul>
           <li><a href="https://github.com/thylinao1/relay-psa-codesprint">Repository</a></li>
-          <li><a href="../video/out/relay-video.mp4">Demo video</a></li>
-          <li><a href="../deliverables/deck/relay-deck.html">Submission deck</a></li>
-          <li><a href="../README.md">README</a></li>
+          <li><a href="assets/relay-video.mp4">Demo video</a></li>
+          <li><a href="assets/relay-deck.pdf">Submission deck</a></li>
+          <li><a href="https://github.com/thylinao1/relay-psa-codesprint/blob/main/README.md">README</a></li>
         </ul>
       </div>
       <div>
         <h4>Written explanation</h4>
         <ul>
-          <li><a href="../deliverables/ARCHITECTURE-AND-CONTROLS.md">Architecture and controls</a></li>
-          <li><a href="../docs/CONTRACT.md">The frozen contract</a></li>
-          <li><a href="../docs/SPEC.md">Specification</a></li>
-          <li><a href="../docs/SECURITY-REVIEW.md">Security review</a></li>
+          <li><a href="https://github.com/thylinao1/relay-psa-codesprint/blob/main/deliverables/ARCHITECTURE-AND-CONTROLS.md">Architecture and controls</a></li>
+          <li><a href="https://github.com/thylinao1/relay-psa-codesprint/blob/main/docs/CONTRACT.md">The frozen contract</a></li>
+          <li><a href="https://github.com/thylinao1/relay-psa-codesprint/blob/main/docs/SPEC.md">Specification</a></li>
+          <li><a href="https://github.com/thylinao1/relay-psa-codesprint/blob/main/docs/SECURITY-REVIEW.md">Security review</a></li>
         </ul>
       </div>
       <div>
         <h4>Evidence</h4>
         <ul>
-          <li><a href="../deliverables/EVIDENCE-SHEET.md">Evidence sheet</a></li>
-          <li><a href="../deliverables/FALSIFICATION-CERTIFICATE.md">Falsification certificate</a></li>
-          <li><a href="../docs/GOVERNED-EDIT-PATTERN.md">Governed edit pattern</a></li>
-          <li><a href="../THIRD-PARTY.md">Third-party terms</a></li>
+          <li><a href="https://github.com/thylinao1/relay-psa-codesprint/blob/main/deliverables/EVIDENCE-SHEET.md">Evidence sheet</a></li>
+          <li><a href="https://github.com/thylinao1/relay-psa-codesprint/blob/main/deliverables/FALSIFICATION-CERTIFICATE.md">Falsification certificate</a></li>
+          <li><a href="https://github.com/thylinao1/relay-psa-codesprint/blob/main/docs/GOVERNED-EDIT-PATTERN.md">Governed edit pattern</a></li>
+          <li><a href="https://github.com/thylinao1/relay-psa-codesprint/blob/main/THIRD-PARTY.md">Third-party terms</a></li>
         </ul>
       </div>
       <div>
@@ -1473,18 +1611,47 @@ function json(id){ var el=document.getElementById(id); try{ return JSON.parse(el
   setTimeout(function(){ requestAnimationFrame(step); }, 700);
 })();
 
-/* ---------------- hero canvas: slow-drifting dots on the ground colour ---------------- */
+/* ---------------- hero canvas: a container terminal at night ----------------
+   One canvas, one requestAnimationFrame loop capped near thirty frames a second,
+   stopped by an IntersectionObserver the moment the hero leaves the viewport and
+   by the page visibility event when the tab is hidden, so it costs nothing further
+   down the page.
+
+   The scene is a parallax dot field over a horizon carrying yard lights, three
+   vessel silhouettes crossing at different depths on periods near ninety seconds,
+   and a floodlight sweep every twenty-seven seconds. Every fill is chosen so that,
+   composited on the page ground #0A0F14, no pixel of the animation passes about
+   12 percent relative luminance. The caps below are the ceiling: the brightest
+   value any element can reach. The wordmark at #E8EDF2 sits near 80 percent and
+   the paragraph at #B4C0CC near 50 percent, so the text stays the brightest thing
+   in the hero by a wide margin.
+
+   Positions are derived from an elapsed-seconds clock rather than accumulated per
+   frame, so the scene runs at the same speed whatever the frame rate, and drawing
+   it at t = 0 gives the still frame used under reduced motion. */
 (function(){
   var c = document.getElementById("field");
   if(!c) return;
-  var ctx = c.getContext("2d"), dots = [], w = 0, h = 0, dpr = 1, raf = null, on = false;
+  var ctx = c.getContext("2d");
+  var w = 0, h = 0, dpr = 1, raf = null, onScreen = false;
+  /* The gap is measured against 32 rather than 30 frames a second on purpose. A hard
+     threshold of exactly 1000/30 drops every second callback on a display that is
+     already delivering thirty, which halves the rate to fifteen. */
+  var t = 0, last = 0, FRAME = 1000 / 32;
+
+  var A_DOT = 0.40, A_LAMP = 0.28, A_SWEEP = 0.05;
+  var GREY = "128,144,160", AMBER = "245,185,66", HULL = "22,31,41", SWEEP = "148,164,184";
+
+  var layers = [], lamps = [], ships = [], horizon = 0;
 
   function seedRandom(s){
     return function(){ s |= 0; s = s + 0x6D2B79F5 | 0;
-      var t = Math.imul(s ^ s >>> 15, 1 | s);
-      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
-      return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+      var k = Math.imul(s ^ s >>> 15, 1 | s);
+      k = k + Math.imul(k ^ k >>> 7, 61 | k) ^ k;
+      return ((k ^ k >>> 14) >>> 0) / 4294967296; };
   }
+  function wrap(v, m){ v = v % m; return v < 0 ? v + m : v; }
+
   function size(){
     var r = c.getBoundingClientRect();
     dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -1493,47 +1660,189 @@ function json(id){ var el=document.getElementById(id); try{ return JSON.parse(el
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     build();
   }
+
   function build(){
-    var rnd = seedRandom(41), n = Math.round(clamp(w * h / 12000, 40, 190));
-    dots = [];
-    for(var i = 0; i < n; i++){
-      dots.push({ x: rnd() * w, y: rnd() * h, r: 0.6 + rnd() * 1.5,
-                  vx: (rnd() - 0.5) * 0.10, vy: -0.04 - rnd() * 0.10,
-                  a: 0.10 + rnd() * 0.30, amber: rnd() > 0.90 });
-    }
-  }
-  function paint(move){
-    ctx.clearRect(0, 0, w, h);
-    for(var i = 0; i < dots.length; i++){
-      var d = dots[i];
-      if(move){
-        d.x += d.vx; d.y += d.vy;
-        if(d.y < -6) { d.y = h + 6; d.x = Math.random() * w; }
-        if(d.x < -6) d.x = w + 6; else if(d.x > w + 6) d.x = -6;
+    var rnd = seedRandom(41);
+    horizon = Math.round(h * 0.63);
+
+    /* Three depths. The far layer barely moves, the near layer carries the drift. */
+    var spec = [
+      { share: 0.54, vx: 0.55, vy: -0.05, r: [0.5, 1.1], a: [0.05, 0.15] },
+      { share: 0.31, vx: 1.40, vy: -0.10, r: [0.7, 1.6], a: [0.10, 0.26] },
+      { share: 0.15, vx: 2.90, vy: -0.17, r: [1.0, 2.1], a: [0.16, A_DOT] }
+    ];
+    var total = clamp(Math.round(w * h / 11000), 60, 230);
+    layers = [];
+    spec.forEach(function(s){
+      var pts = [], n = Math.max(8, Math.round(total * s.share)), i;
+      for(i = 0; i < n; i++){
+        pts.push({ x: rnd() * w, y: rnd() * h,
+                   r: s.r[0] + rnd() * (s.r[1] - s.r[0]),
+                   a: s.a[0] + rnd() * (s.a[1] - s.a[0]),
+                   lamp: rnd() > 0.93, ph: rnd() * 6.283 });
       }
-      ctx.beginPath();
-      ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
-      ctx.fillStyle = d.amber ? "rgba(245,185,66," + (d.a * 0.85).toFixed(3) + ")"
-                              : "rgba(128,144,160," + d.a.toFixed(3) + ")";
-      ctx.fill();
+      layers.push({ vx: s.vx, vy: s.vy, pts: pts });
+    });
+
+    /* Yard lights along the horizon, a few of them on masts above it. */
+    lamps = [];
+    var count = clamp(Math.round(w / 72), 8, 28), step = w / count, j;
+    for(j = 0; j < count; j++){
+      lamps.push({ x: (j + 0.5 + (rnd() - 0.5) * 0.6) * step,
+                   y: horizon - 1 - rnd() * 3,
+                   a: 0.15 + rnd() * (A_LAMP - 0.15),
+                   ph: rnd() * 6.283, sp: 0.4 + rnd() * 0.9,
+                   mast: rnd() > 0.74 ? 8 + rnd() * 16 : 0 });
+    }
+
+    /* Three vessels at three depths. Periods sit around ninety seconds. */
+    ships = [
+      { y: horizon -  7, s: 0.30, period:  96, phase: 0.12, dir:  1, a: 0.55 },
+      { y: horizon + 22, s: 0.54, period:  84, phase: 0.61, dir: -1, a: 0.78 },
+      { y: horizon + Math.min(84, (h - horizon) * 0.46), s: 0.86, period: 118,
+        phase: 0.34, dir: 1, a: 0.92 }
+    ];
+  }
+
+  function dot(x, y, r, rgb, a){
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, 6.2832);
+    ctx.fillStyle = "rgba(" + rgb + "," + a.toFixed(3) + ")";
+    ctx.fill();
+  }
+
+  function drawLayer(ix){
+    var L = layers[ix], i, p, x, y, a;
+    if(!L) return;
+    for(i = 0; i < L.pts.length; i++){
+      p = L.pts[i];
+      x = wrap(p.x + L.vx * t, w + 12) - 6;
+      y = wrap(p.y + L.vy * t, h + 12) - 6;
+      a = p.a * (0.78 + 0.22 * Math.sin(t * 0.5 + p.ph));
+      dot(x, y, p.r, p.lamp ? AMBER : GREY, p.lamp ? Math.min(a, A_LAMP) : a);
     }
   }
-  function loop(){ paint(true); raf = requestAnimationFrame(loop); }
-  function start(){ if(raf || reduce) return; raf = requestAnimationFrame(loop); }
-  function stop(){ if(raf){ cancelAnimationFrame(raf); raf = null; } }
+
+  function drawHorizon(){
+    var g = ctx.createLinearGradient(0, horizon - 96, 0, horizon + 2);
+    g.addColorStop(0, "rgba(" + AMBER + ",0)");
+    g.addColorStop(1, "rgba(" + AMBER + ",0.055)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, horizon - 96, w, 98);
+    ctx.fillStyle = "rgba(46,63,82,0.8)";
+    ctx.fillRect(0, horizon, w, 1);
+  }
+
+  function drawLamps(){
+    for(var i = 0; i < lamps.length; i++){
+      var m = lamps[i];
+      var a = m.a * (0.62 + 0.38 * Math.sin(t * m.sp + m.ph));
+      if(m.mast){
+        ctx.fillStyle = "rgba(46,63,82,0.55)";
+        ctx.fillRect(Math.round(m.x), m.y - m.mast, 1, m.mast);
+        dot(m.x + 0.5, m.y - m.mast, 1.1, AMBER, Math.min(a, A_LAMP));
+      }
+      dot(m.x, m.y, 1.3, AMBER, Math.min(a, A_LAMP));
+      /* the light thrown down onto the apron below the horizon */
+      var g = ctx.createLinearGradient(0, m.y, 0, m.y + 26);
+      g.addColorStop(0, "rgba(" + AMBER + "," + (a * 0.28).toFixed(3) + ")");
+      g.addColorStop(1, "rgba(" + AMBER + ",0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(m.x - 5, m.y, 10, 26);
+    }
+  }
+
+  function drawShip(sh){
+    var span = w + 360 * sh.s;
+    var k = wrap(t / sh.period + sh.phase, 1);
+    var x = -180 * sh.s + k * span;
+    if(sh.dir < 0) x = w - x;
+    if(x < -200 * sh.s || x > w + 200 * sh.s) return;
+
+    ctx.save();
+    ctx.translate(x, sh.y);
+    ctx.scale(sh.s, sh.s);
+    ctx.fillStyle = "rgba(" + HULL + "," + sh.a.toFixed(2) + ")";
+    ctx.beginPath();
+    ctx.moveTo(-118, -3); ctx.lineTo(122, -3); ctx.lineTo(104, 12); ctx.lineTo(-100, 12);
+    ctx.closePath(); ctx.fill();
+    /* container stacks along the deck, then the accommodation block and funnel aft */
+    var st = [[-100,11,15],[-82,15,21],[-60,13,17],[-38,16,23],[-14,13,18],
+              [8,16,22],[32,12,16],[52,14,19],[72,10,13]], i;
+    for(i = 0; i < st.length; i++) ctx.fillRect(st[i][0], -3 - st[i][2], st[i][1], st[i][2]);
+    ctx.fillRect(86, -31, 22, 28);
+    ctx.fillRect(92, -41, 9, 11);
+    ctx.restore();
+
+    /* running lights, sized in screen units so they stay points of light */
+    var lx = [-104, -20, 66, 97, 97], ly = [-20, -27, -20, -34, -45], j;
+    for(j = 0; j < lx.length; j++){
+      var a = 0.13 + 0.13 * (0.5 + 0.5 * Math.sin(t * 0.8 + j * 1.9 + sh.phase * 6));
+      dot(x + lx[j] * sh.s, sh.y + ly[j] * sh.s, 1, AMBER, Math.min(a, A_LAMP));
+    }
+  }
+
+  function drawSweep(){
+    var cycle = 27, dur = 8.5;
+    var k = wrap(t, cycle) / dur;
+    if(k > 1) return;
+    var fade = Math.sin(Math.PI * k);
+    var x = -0.28 * w + k * 1.56 * w;
+    var bw = Math.max(120, w * 0.17);
+    var g = ctx.createLinearGradient(x - bw, 0, x + bw, 0);
+    g.addColorStop(0, "rgba(" + SWEEP + ",0)");
+    g.addColorStop(0.5, "rgba(" + SWEEP + "," + (A_SWEEP * fade).toFixed(4) + ")");
+    g.addColorStop(1, "rgba(" + SWEEP + ",0)");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(x - bw + 74, 0); ctx.lineTo(x + bw + 74, 0);
+    ctx.lineTo(x + bw, h); ctx.lineTo(x - bw, h);
+    ctx.closePath(); ctx.fill();
+  }
+
+  function paint(){
+    ctx.clearRect(0, 0, w, h);
+    drawLayer(0);
+    drawHorizon();
+    drawShip(ships[0]);
+    drawLamps();
+    drawShip(ships[1]);
+    drawLayer(1);
+    drawShip(ships[2]);
+    drawLayer(2);
+    drawSweep();
+  }
+
+  function loop(ts){
+    raf = requestAnimationFrame(loop);
+    if(last && ts - last < FRAME) return;
+    t += last ? Math.min((ts - last) / 1000, 0.2) : 0;
+    last = ts;
+    paint();
+  }
+  function start(){ if(raf || reduce) return; last = 0; raf = requestAnimationFrame(loop); }
+  function stop(){ if(raf){ cancelAnimationFrame(raf); raf = null; } last = 0; }
 
   size();
-  paint(false);
+  paint();
+
   var io = new IntersectionObserver(function(es){
-    on = es[0].isIntersecting;
-    if(on && !reduce) start(); else stop();
+    onScreen = es[0].isIntersecting;
+    if(onScreen && !reduce && !document.hidden) start(); else stop();
   }, { threshold: 0 });
   io.observe(c);
+
+  document.addEventListener("visibilitychange", function(){
+    if(document.hidden) stop(); else if(onScreen && !reduce) start();
+  });
 
   var rz = null;
   window.addEventListener("resize", function(){
     if(rz) clearTimeout(rz);
-    rz = setTimeout(function(){ size(); paint(false); if(on && !reduce) start(); }, 140);
+    rz = setTimeout(function(){
+      size(); paint();
+      if(onScreen && !reduce && !document.hidden) start();
+    }, 140);
   }, { passive: true });
 })();
 
@@ -1567,6 +1876,58 @@ function json(id){ var el=document.getElementById(id); try{ return JSON.parse(el
     if(r.top < window.innerHeight){ return; }   /* already read: leave the value alone */
     io.observe(el);
   });
+})();
+
+/* ---------------- code excerpts type their first line ----------------
+   Only the first line, and only once per excerpt. The line is typed back from
+   its own text, so the rendered result is character for character what the file
+   held before the animation started. Anything unexpected in that line, markup or
+   a length no reader would wait through, is left alone. */
+function typeFirstLine(fig){
+  if(!fig || reduce || fig.getAttribute("data-typed") === "1") return;
+  fig.setAttribute("data-typed", "1");
+  var t = fig.querySelector("pre .cl .t");
+  if(!t || t.children.length) return;
+  var full = t.textContent;
+  if(!full || full.length > 120) return;
+  t.textContent = "";
+  t.classList.add("typing");
+  var shown = 0, t0 = 0;
+  function step(ts){
+    if(!t0) t0 = ts;
+    var want = Math.min(full.length, Math.round((ts - t0) / 15));
+    if(want !== shown){ shown = want; t.textContent = full.slice(0, shown); }
+    if(shown < full.length) requestAnimationFrame(step);
+    else { t.textContent = full; t.classList.remove("typing"); }
+  }
+  requestAnimationFrame(step);
+}
+(function(){
+  if(reduce || !window.IntersectionObserver) return;
+  var figs = [].slice.call(document.querySelectorAll("figure.code"));
+  var io = new IntersectionObserver(function(es){
+    es.forEach(function(en){
+      if(!en.isIntersecting) return;
+      io.unobserve(en.target);
+      typeFirstLine(en.target);
+    });
+  }, { threshold: 0.25 });
+  figs.forEach(function(f){ io.observe(f); });
+})();
+
+/* ---------------- architecture: the boxes light in flow order, once ---------------- */
+(function(){
+  var graph = document.getElementById("graph");
+  if(!graph || reduce || !window.IntersectionObserver) return;
+  var boxes = [].slice.call(graph.querySelectorAll(".node"));
+  var io = new IntersectionObserver(function(es){
+    if(!es[0].isIntersecting) return;
+    io.disconnect();
+    boxes.forEach(function(b, i){
+      setTimeout(function(){ b.classList.add("lit"); }, 140 + i * 130);
+    });
+  }, { threshold: 0.28 });
+  io.observe(graph);
 })();
 
 /* ---------------- the two-lane figure plays when it enters ---------------- */
@@ -1614,6 +1975,26 @@ function json(id){ var el=document.getElementById(id); try{ return JSON.parse(el
 
   var map = {};
   links.forEach(function(a){ map[a.dataset.sec] = a; });
+
+  /* The rail also carries the name of the section it is standing in. The names are
+     read from the navigation so there is one wording, not two. The hero has no
+     navigation entry, so it takes the wordmark. */
+  var label = document.getElementById("railLabel");
+  var NAMES = { top: "RELAY" }, shown = "RELAY", swap = null;
+  links.forEach(function(a){ NAMES[a.dataset.sec] = a.textContent.trim(); });
+  function setLabel(id){
+    var name = NAMES[id];
+    if(!label || !name || name === shown) return;
+    shown = name;
+    if(reduce){ label.textContent = name; return; }
+    if(swap) clearTimeout(swap);
+    label.classList.add("out");
+    swap = setTimeout(function(){
+      label.textContent = shown;
+      label.classList.remove("out");
+    }, 220);
+  }
+
   var spy = new IntersectionObserver(function(es){
     es.forEach(function(en){
       if(!en.isIntersecting) return;
@@ -1621,6 +2002,7 @@ function json(id){ var el=document.getElementById(id); try{ return JSON.parse(el
       ticks.forEach(function(t){ t.classList.remove("on"); });
       var a = map[en.target.id]; if(a) a.classList.add("active");
       ticks.forEach(function(t){ if(t.dataset.sec === en.target.id) t.classList.add("on"); });
+      setLabel(en.target.id);
     });
   }, { rootMargin: "-45% 0px -50% 0px" });
   secs.forEach(function(s){ spy.observe(s); });
@@ -1701,6 +2083,7 @@ document.addEventListener("click", function(e){
         '</div>' +
       '</div>';
     requestAnimationFrame(function(){ panel.classList.add("on"); });
+    typeFirstLine(panel.querySelector("figure.code"));
     var cl = document.getElementById("detailClose");
     if(cl) cl.addEventListener("click", function(){ close(); btn.focus(); });
   }
@@ -1757,7 +2140,8 @@ document.addEventListener("click", function(e){
         action = esc(action);
       }
       out +=
-        '<div class="ev' + (broken ? " bad" : "") + (tampered && i === editIx ? " edited" : "") + '">' +
+        '<div class="ev' + (broken ? " bad" : "") + (tampered && i === editIx ? " edited" : "") +
+          '" style="--k:' + i + '">' +
           '<span class="id">' + esc(ev.id) + '</span>' +
           '<div class="ty">' + esc(ev.type) + '</div>' +
           '<p class="ac">' + action + '</p>' +
@@ -1780,7 +2164,21 @@ document.addEventListener("click", function(e){
       btn.textContent = "Edit an event";
       btn.classList.remove("armed");
     }
+    pulse();
   }
+
+  /* While the chain verifies and is on screen, a highlight travels along it in
+     event order, which is the direction each hash seals the one before it. The
+     moment the chain is broken the travel stops. */
+  var inView = false;
+  function pulse(){ host.classList.toggle("pulse", !tampered && inView && !reduce); }
+  if(window.IntersectionObserver){
+    new IntersectionObserver(function(es){
+      inView = es[0].isIntersecting;
+      pulse();
+    }, { threshold: 0.2 }).observe(host);
+  }
+
   btn.addEventListener("click", function(){ tampered = !tampered; render(); });
   render();
 })();
