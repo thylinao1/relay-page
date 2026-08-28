@@ -1515,7 +1515,9 @@ figcaption:not(.code-head)::after{content:"";display:block;width:64px;height:1px
       <button class="filmclose" type="button" id="filmclose">Close</button>
     </div>
     <video id="filmplayer" controls playsinline preload="none"
-           poster="assets/console-loop.jpg"></video>
+           poster="assets/console-loop.jpg">
+      <track kind="captions" src="assets/relay-video.vtt" srclang="en" label="English" default>
+    </video>
   </div>
 </div>
 

@@ -1,0 +1,554 @@
+WEBVTT
+
+00:00:13.600 --> 00:00:16.000
+Imagine you're a container.
+
+00:00:16.000 --> 00:00:18.110
+You came off one ship this morning,
+
+00:00:18.110 --> 00:00:21.390
+and you have forty-one
+minutes to make the next one.
+
+00:00:21.390 --> 00:00:23.670
+Miss it, and you wait for the next sailing.
+
+00:00:23.670 --> 00:00:26.140
+And nobody at the terminal
+knows you're in danger,
+
+00:00:26.140 --> 00:00:29.080
+because the data feed every
+system watches has gone quiet.
+
+00:00:29.080 --> 00:00:31.340
+On two recorded days in Singapore,
+
+00:00:31.340 --> 00:00:35.540
+sixty-three of seventy-four late ships
+gave that feed no warning at all.
+
+00:00:35.540 --> 00:00:37.380
+The warning did exist, though.
+
+00:00:37.380 --> 00:00:40.800
+It was sitting in an email, and
+no rules engine reads email.
+
+00:00:40.800 --> 00:00:43.900
+That gap is what RELAY is built for.
+
+00:00:44.500 --> 00:00:48.980
+To see why the feed was
+quiet, look at the two lanes.
+
+00:00:48.980 --> 00:00:51.315
+The top lane is the structured feed,
+
+00:00:51.315 --> 00:00:58.850
+and on those two days 463 of its 1,106
+arrival estimates were already in the past
+
+00:00:58.850 --> 00:01:00.050
+when they were sent.
+
+00:01:00.050 --> 00:01:03.440
+The bottom lane is the carrier's email,
+where the carrier often knows first,
+
+00:01:03.440 --> 00:01:06.740
+so when the feed is silent, the
+email is the earlier signal.
+
+00:01:06.740 --> 00:01:14.030
+PSA keeps 84% of its assured calls on
+time; the rest is where RELAY works.
+
+00:01:14.100 --> 00:01:17.340
+So where does the email go?
+
+00:01:17.340 --> 00:01:19.710
+Follow the token across the diagram.
+
+00:01:19.710 --> 00:01:23.205
+It goes to the language model first,
+
+00:01:23.205 --> 00:01:25.290
+which turns the free text into a checked fact.
+
+00:01:25.290 --> 00:01:27.170
+The twin, our simulator of the terminal,
+
+00:01:27.170 --> 00:01:29.920
+recomputes the minutes the box has left.
+
+00:01:29.920 --> 00:01:32.620
+The solver picks the cheapest recovery.
+
+00:01:32.620 --> 00:01:36.880
+A policy table the model cannot
+edit decides who gets asked.
+
+00:01:36.880 --> 00:01:40.000
+And the duty officer decides
+what actually gets written.
+
+00:01:40.000 --> 00:01:43.530
+The model never picks the
+tool, the tier or the action.
+
+00:01:44.200 --> 00:01:47.230
+Let's start with that email.
+
+00:01:47.230 --> 00:01:51.350
+On the console, the advisory arrives
+and the trace records the model's call.
+
+00:01:51.350 --> 00:01:57.000
+A small model reading alone invents
+an arrival time in 47.7% of the cases
+
+00:01:57.000 --> 00:01:58.220
+where there is none,
+
+00:01:58.220 --> 00:02:00.780
+so RELAY samples it three times,
+
+00:02:00.780 --> 00:02:05.610
+five if they disagree, and the
+parses vote field by field.
+
+00:02:05.610 --> 00:02:07.830
+Only allow-listed keys survive,
+
+00:02:07.830 --> 00:02:11.090
+and a port the email
+never mentions is dropped.
+
+00:02:11.090 --> 00:02:14.280
+What remains is a fact
+with a completeness score,
+
+00:02:14.280 --> 00:02:21.460
+0.87 against a gate of 0.60; below
+the gate, a person is told instead.
+
+00:02:21.460 --> 00:02:26.970
+And in 500 seeded scenarios, 35
+connections were at risk only in an email:
+
+00:02:26.970 --> 00:02:32.200
+rules saw none, and the agent
+escalated all 35 to a person.
+
+00:02:32.860 --> 00:02:35.650
+Once the fact is in, the twin takes over.
+
+00:02:35.650 --> 00:02:39.620
+It computes margin at the ninetieth
+percentile of yard move times,
+
+00:02:39.620 --> 00:02:42.300
+so feasible means feasible on a bad day,
+
+00:02:42.300 --> 00:02:46.360
+and for our box that margin
+is 41 minutes: at risk.
+
+00:02:46.360 --> 00:02:51.150
+Then come the options: expedite
+the yard transfer for $800;
+
+00:02:51.150 --> 00:02:54.520
+ask the carrier to extend
+the cut-off for nothing,
+
+00:02:54.520 --> 00:02:59.450
+although a request is not a
+grant; or rebook for $2,400.
+
+00:02:59.450 --> 00:03:02.030
+And when one late ship
+breaks three connections,
+
+00:03:02.030 --> 00:03:03.940
+they share one shift budget,
+
+00:03:03.940 --> 00:03:09.890
+so a solver allocates one action to
+each in a single solve, $5,600 in total.
+
+00:03:10.300 --> 00:03:12.810
+The solver wants an expedite.
+
+00:03:12.810 --> 00:03:14.120
+Can it just do it?
+
+00:03:14.120 --> 00:03:15.320
+No.
+
+00:03:15.320 --> 00:03:17.580
+Every action the agent can
+propose has a row in it,
+
+00:03:17.580 --> 00:03:19.210
+and the row sets the tier.
+
+00:03:19.210 --> 00:03:21.820
+An expedite is row 3,
+tier T1: ask and approve.
+
+00:03:21.820 --> 00:03:24.370
+So a card is minted for the duty officer,
+
+00:03:24.370 --> 00:03:27.420
+with a single-use token bound
+to these exact arguments,
+
+00:03:27.420 --> 00:03:29.800
+and a 120-second clock starts.
+
+00:03:29.800 --> 00:03:32.790
+If nobody answers, silence counts as no,
+
+00:03:32.790 --> 00:03:36.370
+and that default has a
+cost we will come back to.
+
+00:03:36.800 --> 00:03:40.920
+Now watch the officer work on the card.
+
+00:03:40.920 --> 00:03:44.500
+First, a question to the
+twin: what would a rebook do?
+
+00:03:44.500 --> 00:03:47.220
+Then the officer raises
+the expedite to CRITICAL:
+
+00:03:47.220 --> 00:03:49.760
+the policy row moves from 3 to 4,
+
+00:03:49.760 --> 00:03:54.680
+the risk becomes high, and a written
+justification becomes mandatory.
+
+00:03:54.680 --> 00:03:56.620
+The officer types one,
+
+00:03:56.620 --> 00:04:00.490
+and behind the button the token is
+re-minted over the edited arguments,
+
+00:04:00.490 --> 00:04:04.290
+so the write that executes
+is exactly what was approved.
+
+00:04:04.290 --> 00:04:05.490
+Approve.
+
+00:04:05.490 --> 00:04:08.685
+On the board, the margin
+goes from 41 minutes to 101,
+
+00:04:08.685 --> 00:04:11.845
+and the first card sits
+underneath, marked denied.
+
+00:04:11.845 --> 00:04:14.900
+This take was recorded
+with the pricing gate off;
+
+00:04:14.900 --> 00:04:17.700
+under the shipped default
+this expedite would be advice.
+
+00:04:17.900 --> 00:04:22.230
+The approved write now meets a gate,
+
+00:04:22.230 --> 00:04:27.130
+which runs four checks the way a bank
+checks a cheque: is the token real
+
+00:04:27.130 --> 00:04:31.330
+and bound to these arguments, is
+the caller allowed to present it,
+
+00:04:31.330 --> 00:04:35.540
+has this write already happened,
+and is the episode degraded.
+
+00:04:35.540 --> 00:04:39.090
+The striped band behind the
+gate is the fault layer,
+
+00:04:39.090 --> 00:04:43.250
+and the gate runs before it, so a
+bypassed fault cannot skip the checks.
+
+00:04:43.250 --> 00:04:45.740
+We attacked this path fourteen times;
+
+00:04:45.740 --> 00:04:48.830
+14 of 14 are refused, after four fixes.
+
+00:04:48.950 --> 00:04:51.230
+So far everything worked.
+
+00:04:51.230 --> 00:04:53.080
+What happens when it does not?
+
+00:04:53.080 --> 00:04:54.740
+One click on the fault control,
+
+00:04:54.740 --> 00:04:57.270
+and the header flips to degraded to advisory.
+
+00:04:57.270 --> 00:05:01.465
+Try to approve a second card,
+and the server refuses the write.
+
+00:05:01.465 --> 00:05:02.810
+Now leave a card unanswered.
+
+00:05:02.810 --> 00:05:05.900
+The window was shortened
+for the recording, and
+
+00:05:05.900 --> 00:05:11.630
+when it runs out the card expires into deny by
+default with a written summary to the duty supervisor.
+
+00:05:11.630 --> 00:05:14.350
+Last, from the command line, so staged,
+
+00:05:14.350 --> 00:05:18.390
+we fire a pack whose cheapest
+remedy has no row in the table;
+
+00:05:18.390 --> 00:05:22.300
+it falls to row 10 and is
+denied before a card can exist.
+
+00:05:22.300 --> 00:05:25.860
+Each time the default is no,
+and a person hears about it.
+
+00:05:26.100 --> 00:05:30.560
+Every step you have
+watched went onto a ledger,
+
+00:05:30.560 --> 00:05:33.020
+and each event hashes the one before.
+
+00:05:33.020 --> 00:05:35.130
+So what if someone edits history?
+
+00:05:35.130 --> 00:05:38.640
+Change one byte of an old event,
+and every hash after it breaks.
+
+00:05:38.640 --> 00:05:41.980
+Shorten the chain, and the
+head anchor catches it.
+
+00:05:41.980 --> 00:05:46.300
+On the console the chip turns to
+chain broken and replay is refused.
+
+00:05:46.300 --> 00:05:49.125
+Tamper-evident, then, not tamper-proof:
+
+00:05:49.125 --> 00:05:52.220
+someone with root access
+could still rewrite it,
+
+00:05:52.220 --> 00:05:57.250
+which is why production keeps the
+store outside the agent's reach.
+
+00:05:57.250 --> 00:06:03.160
+That is a lot of controls, so how
+do we know each one is wired in?
+
+00:06:03.160 --> 00:06:05.090
+Green tests cannot tell you.
+
+00:06:05.090 --> 00:06:09.075
+So we parsed the 56 controls
+our own documents claim,
+
+00:06:09.075 --> 00:06:14.310
+switched 48 of them off one at a time,
+and required a green test to go red.
+
+00:06:14.310 --> 00:06:17.760
+56 of 56 probes were caught and none survived.
+
+00:06:17.760 --> 00:06:20.460
+Along the way it found a live path traversal,
+
+00:06:20.460 --> 00:06:24.110
+a way to read files a
+server should never serve,
+
+00:06:24.110 --> 00:06:25.920
+that thirteen green tests had missed.
+
+00:06:26.100 --> 00:06:30.620
+Which brings us back to our
+box, and to the pricing gate.
+
+00:06:30.620 --> 00:06:33.040
+With it on, our box gets no card.
+
+00:06:33.040 --> 00:06:36.140
+Before proposing anything,
+the agent prices the action:
+
+00:06:36.140 --> 00:06:39.260
+the chance of a save,
+times what a save is worth,
+
+00:06:39.260 --> 00:06:43.670
+against the cost, and when
+that comes out below the cost,
+
+00:06:43.670 --> 00:06:45.270
+the action is carried as advice.
+
+00:06:45.270 --> 00:06:47.700
+The agent priced its own actions
+
+00:06:47.700 --> 00:06:50.400
+and, awkwardly for us, declined most of them.
+
+00:06:50.400 --> 00:06:56.330
+On the same 500 scenarios,
+expedites fall from 173 to 29,
+
+00:06:56.330 --> 00:07:04.720
+and spend per rollover avoided
+from $60,835 to $19,745.
+
+00:07:04.720 --> 00:07:07.360
+That sweep is a simulator.
+
+00:07:07.360 --> 00:07:09.740
+Does this hold up at volume?
+
+00:07:09.740 --> 00:07:14.320
+Ten thousand episodes ran with faults
+injected into a quarter of them;
+
+00:07:14.320 --> 00:07:18.010
+the slowest one in a hundred
+took 21.7 milliseconds,
+
+00:07:18.010 --> 00:07:20.770
+and nothing was written without an approval.
+
+00:07:20.770 --> 00:07:27.990
+Each email costs the local model 4,689.7
+tokens, priced at zero on a laptop.
+
+00:07:27.990 --> 00:07:31.950
+Deny by default has a
+cost, and we modelled it:
+
+00:07:31.950 --> 00:07:36.100
+one officer at half availability
+lets 35.6% of cards expire,
+
+00:07:36.100 --> 00:07:39.290
+and two officers bring that to 5.0%.
+
+00:07:39.290 --> 00:07:42.730
+No desk has been staffed yet,
+so treat that as a model.
+
+00:07:43.200 --> 00:07:46.940
+So whose money is this?
+
+00:07:46.940 --> 00:07:52.770
+With the gate off, our first
+build lost the chain $2.4M a year.
+
+00:07:52.770 --> 00:07:56.020
+With the gate on, and
+after paying for the desk,
+
+00:07:56.020 --> 00:08:02.130
+the chain nets $87,215 a year,
+positive with probability 0.683.
+
+00:08:02.130 --> 00:08:08.007
+The shipper and the carrier gain, and
+PSA's own line sits at minus $1.3M.
+
+00:08:08.007 --> 00:08:09.790
+The reason is a tariff assumption:
+
+00:08:09.790 --> 00:08:14.760
+in the model a rolled box is
+billable storage at $20 per box-day,
+
+00:08:14.760 --> 00:08:18.120
+so a saved box is a charge
+PSA no longer collects.
+
+00:08:18.120 --> 00:08:20.935
+A box inside its free time is not billed,
+
+00:08:20.935 --> 00:08:23.040
+so that input is the first to replace.
+
+00:08:23.040 --> 00:08:29.290
+PSA's case is commercial: the
+expedite funded by whoever gains,
+
+00:08:29.290 --> 00:08:32.800
+or the recovery priced into Assured Port Time.
+
+00:08:33.010 --> 00:08:35.890
+Two limits, before the ask.
+
+00:08:35.890 --> 00:08:37.960
+The sweep is a simulator grading itself;
+
+00:08:37.960 --> 00:08:41.990
+an independent oracle agrees
+with it 320 of 320 times,
+
+00:08:41.990 --> 00:08:44.880
+which narrows that objection
+without closing it.
+
+00:08:44.880 --> 00:08:50.440
+And our simulator hands the structured
+feed the fact 85% of the time,
+
+00:08:50.440 --> 00:08:55.290
+the opposite of the recorded
+days, so we publish both.
+
+00:08:55.290 --> 00:08:59.580
+What we ask of PSA follows:
+anonymised connection outcomes;
+
+00:08:59.580 --> 00:09:02.230
+interface documents for PORTNET
+
+00:09:02.230 --> 00:09:07.100
+and the Service Allocation Tool;
+and PSA's own alert taxonomy.
+
+00:09:07.100 --> 00:09:09.430
+The first deployment would be advisory.
+
+00:09:09.430 --> 00:09:10.630
+And our box?
+
+00:09:10.630 --> 00:09:13.360
+Still on the board, at 101
+minutes, with the clock running.
